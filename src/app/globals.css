@@ -1,39 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  /* Light Mode - Concrete Theme */
-  --background: #f8f9fa;
-  --foreground: #212529;
+  --background: #ffffff;
+  --foreground: #111111;
   --surface: #ffffff;
-  --surface-alt: #f1f3f5;
-  --border: #dee2e6;
-  --border-strong: #adb5bd;
-  --accent: #475d7a;
-  --accent-hover: #3d4f66;
-  --muted: #6c757d;
-  --muted-light: #ced4da;
-  --highlight: #f59e0b;
-  --highlight-soft: #fef3c7;
-  --alert: #f97316;
-  --alert-soft: #fed7aa;
-}
-
-.dark {
-  /* Dark Mode - Industrial Theme */
-  --background: #151619;
-  --foreground: #f1f3f5;
-  --surface: #212529;
-  --surface-alt: #343a40;
-  --border: #495057;
-  --border-strong: #6c757d;
-  --accent: #8fa8c2;
-  --accent-hover: #b8c8d8;
-  --muted: #adb5bd;
-  --muted-light: #6c757d;
-  --highlight: #fbbf24;
-  --highlight-soft: #78350f;
-  --alert: #fb923c;
-  --alert-soft: #7c2d12;
+  --surface-alt: #f2f2f2;
+  --border: #111111;
+  --border-strong: #111111;
+  --accent: #111111;
+  --accent-hover: #333333;
+  --muted: #555555;
+  --muted-light: #777777;
+  --highlight: #111111;
+  --highlight-soft: #e5e5e5;
+  --alert: #111111;
+  --alert-soft: #e5e5e5;
 }
 
 * {
@@ -52,4 +33,30 @@ body {
   font-family: var(--font-geist-sans), -apple-system, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  cursor: default;
+  user-select: none;
+}
+
+button,
+a,
+[role="button"] {
+  cursor: pointer;
+}
+
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+input,
+textarea,
+select,
+[contenteditable="true"],
+.selectable {
+  user-select: text;
+}
+
+::selection {
+  background: #d9d9d9;
+  color: #111111;
 }

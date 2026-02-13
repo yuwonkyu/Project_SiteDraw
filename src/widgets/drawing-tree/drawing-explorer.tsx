@@ -99,15 +99,16 @@ const DrawingExplorer = ({ data }: DrawingExplorerProps) => {
         <button
           className={cn(
             "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition",
+            "text-black",
             isSelected
-              ? "bg-iron-900 text-white"
-              : "text-concrete-700 hover:bg-concrete-100 dark:text-concrete-200 dark:hover:bg-concrete-800"
+              ? "bg-gray-700 text-white"
+              : "hover:bg-gray-100"
           )}
           style={{ marginLeft: depth * 12 }}
           type="button"
           onClick={() => setSelectedId(node.id)}
         >
-          <span className="min-w-14 text-xs font-semibold uppercase text-concrete-400 dark:text-concrete-500">
+          <span className="min-w-14 text-xs font-semibold uppercase text-black">
             {kindLabel[node.kind]}
           </span>
           <span className="truncate">{node.name}</span>
@@ -123,42 +124,42 @@ const DrawingExplorer = ({ data }: DrawingExplorerProps) => {
 
   return (
     <section className="grid gap-4 lg:grid-cols-[280px_1fr]">
-      <div className="rounded-lg bg-surface p-5 shadow-sm ring-1 ring-concrete-300 dark:ring-concrete-700">
+      <div className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-black">
         <SectionTitle>탐색 구조</SectionTitle>
         <div className="mt-4 space-y-1">
           {data.tree.rootId ? renderNode(data.tree.rootId, 0) : null}
         </div>
       </div>
-      <div className="rounded-lg bg-surface p-5 shadow-sm ring-1 ring-concrete-300 dark:ring-concrete-700">
+      <div className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-black">
         <SectionTitle>현재 컨텍스트</SectionTitle>
         {selectedNode ? (
           <div className="mt-4 space-y-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-concrete-400">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-black">
                 경로
               </p>
-              <p className="mt-2 text-sm font-semibold text-concrete-900 dark:text-concrete-100">
+              <p className="mt-2 text-sm font-semibold text-black">
                 {selectedNode.path.join(" > ")}
               </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-md border border-concrete-200 bg-concrete-50 p-3 dark:border-concrete-700 dark:bg-concrete-900">
-                <p className="text-xs font-semibold text-concrete-500">구분</p>
-                <p className="mt-1 text-sm font-semibold text-concrete-900 dark:text-concrete-100">
+              <div className="rounded-md border border-black bg-white p-3">
+                <p className="text-xs font-semibold text-black">구분</p>
+                <p className="mt-1 text-sm font-semibold text-black">
                   {kindLabel[selectedNode.kind]}
                 </p>
               </div>
-              <div className="rounded-md border border-concrete-200 bg-concrete-50 p-3 dark:border-concrete-700 dark:bg-concrete-900">
-                <p className="text-xs font-semibold text-concrete-500">리비전 수</p>
-                <p className="mt-1 text-sm font-semibold text-concrete-900 dark:text-concrete-100">
+              <div className="rounded-md border border-black bg-white p-3">
+                <p className="text-xs font-semibold text-black">리비전 수</p>
+                <p className="mt-1 text-sm font-semibold text-black">
                   {relatedRevisions.length}건
                 </p>
               </div>
             </div>
             {selectedNode.kind === "revision" && (
-              <div className="rounded-md border border-concrete-200 bg-concrete-50 p-3 dark:border-concrete-700 dark:bg-concrete-900">
-                <p className="text-xs font-semibold text-concrete-500">변경 사항</p>
-                <ul className="mt-2 space-y-1 text-xs text-concrete-700 dark:text-concrete-300">
+              <div className="rounded-md border border-black bg-white p-3">
+                <p className="text-xs font-semibold text-black">변경 사항</p>
+                <ul className="mt-2 space-y-1 text-xs text-black">
                   {selectedNode.revision.changes.length > 0 ? (
                     selectedNode.revision.changes.map((change) => (
                       <li key={change}>- {change}</li>
@@ -170,7 +171,7 @@ const DrawingExplorer = ({ data }: DrawingExplorerProps) => {
               </div>
             )}
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-concrete-400">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-black">
                 리비전 목록
               </p>
               <div className="mt-3 space-y-2">
@@ -178,19 +179,19 @@ const DrawingExplorer = ({ data }: DrawingExplorerProps) => {
                   relatedRevisions.map((entry) => (
                     <div
                       key={entry.id}
-                      className="rounded-md border border-concrete-200 bg-white px-3 py-2 text-xs text-concrete-700 dark:border-concrete-700 dark:bg-concrete-900 dark:text-concrete-300"
+                      className="rounded-md border border-black bg-white px-3 py-2 text-xs text-black"
                     >
-                      <p className="font-semibold text-concrete-900 dark:text-concrete-100">
+                      <p className="font-semibold text-black">
                         {entry.version}
                       </p>
-                      <p className="mt-1 text-[11px] text-concrete-500">
+                      <p className="mt-1 text-[11px] text-black">
                         {entry.revision.date} · {entry.discipline}
                         {entry.regionId ? ` / Region ${entry.regionId}` : ""}
                       </p>
                     </div>
                   ))
                 ) : (
-                  <p className="text-xs text-concrete-500">
+                  <p className="text-xs text-black">
                     선택한 항목에 리비전이 없습니다.
                   </p>
                 )}
@@ -198,7 +199,7 @@ const DrawingExplorer = ({ data }: DrawingExplorerProps) => {
             </div>
           </div>
         ) : (
-          <p className="mt-4 text-sm text-concrete-500">
+          <p className="mt-4 text-sm text-black">
             선택된 항목이 없습니다.
           </p>
         )}

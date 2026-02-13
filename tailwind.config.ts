@@ -6,6 +6,20 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        background: "var(--background)",
+        foreground: "var(--foreground)",
+        surface: "var(--surface)",
+        "surface-alt": "var(--surface-alt)",
+        border: "var(--border)",
+        "border-strong": "var(--border-strong)",
+        accent: "var(--accent)",
+        "accent-hover": "var(--accent-hover)",
+        muted: "var(--muted)",
+        "muted-light": "var(--muted-light)",
+        highlight: "var(--highlight)",
+        "highlight-soft": "var(--highlight-soft)",
+        alert: "var(--alert)",
+        "alert-soft": "var(--alert-soft)",
         // Main Colors - Concrete & Iron
         concrete: {
           50: "#f8f9fa",
