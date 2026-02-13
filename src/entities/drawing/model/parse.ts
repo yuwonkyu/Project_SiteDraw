@@ -1,4 +1,5 @@
 import type {
+  DisciplineName,
   DisciplineData,
   DisciplineWithRegions,
   DisciplineWithRevisions,
@@ -85,7 +86,10 @@ export const parseDrawingMetadata = (
       return;
     }
 
-    Object.entries(drawing.disciplines).forEach(([disciplineName, data]) => {
+    (Object.entries(drawing.disciplines) as [
+      DisciplineName,
+      DisciplineData | undefined,
+    ][]).forEach(([disciplineName, data]) => {
       if (!data) {
         return;
       }
