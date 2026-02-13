@@ -4,7 +4,7 @@ type SectionTitleProps = {
 
 const SectionTitle = ({ children }: SectionTitleProps) => {
   return (
-    <h2 className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">
+    <h2 className="text-xs font-bold uppercase tracking-[0.28em] text-concrete-500 dark:text-concrete-400">
       {children}
     </h2>
   );

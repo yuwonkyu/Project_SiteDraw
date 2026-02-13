@@ -1,23 +1,39 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f5f7fb;
-  --foreground: #111827;
+  /* Light Mode - Concrete Theme */
+  --background: #f8f9fa;
+  --foreground: #212529;
   --surface: #ffffff;
-  --surface-muted: #e2e8f0;
-  --accent: #0f172a;
-  --accent-soft: #e2e8f0;
+  --surface-alt: #f1f3f5;
+  --border: #dee2e6;
+  --border-strong: #adb5bd;
+  --accent: #475d7a;
+  --accent-hover: #3d4f66;
+  --muted: #6c757d;
+  --muted-light: #ced4da;
+  --highlight: #f59e0b;
+  --highlight-soft: #fef3c7;
+  --alert: #f97316;
+  --alert-soft: #fed7aa;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-surface: var(--surface);
-  --color-surface-muted: var(--surface-muted);
-  --color-accent: var(--accent);
-  --color-accent-soft: var(--accent-soft);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+.dark {
+  /* Dark Mode - Industrial Theme */
+  --background: #151619;
+  --foreground: #f1f3f5;
+  --surface: #212529;
+  --surface-alt: #343a40;
+  --border: #495057;
+  --border-strong: #6c757d;
+  --accent: #8fa8c2;
+  --accent-hover: #b8c8d8;
+  --muted: #adb5bd;
+  --muted-light: #6c757d;
+  --highlight: #fbbf24;
+  --highlight-soft: #78350f;
+  --alert: #fb923c;
+  --alert-soft: #7c2d12;
 }
 
 * {
@@ -33,5 +49,7 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), "Segoe UI", sans-serif;
+  font-family: var(--font-geist-sans), -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }

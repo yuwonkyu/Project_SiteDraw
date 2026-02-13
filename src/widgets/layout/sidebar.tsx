@@ -1,10 +1,10 @@
 const Sidebar = () => {
   return (
-    <aside className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+    <aside className="rounded-lg bg-surface p-5 shadow-sm ring-1 ring-concrete-300 dark:ring-concrete-700">
+      <p className="text-xs font-bold uppercase tracking-[0.2em] text-concrete-500 dark:text-concrete-400">
         내비게이션
       </p>
-      <nav className="mt-4 space-y-2 text-sm">
+      <nav className="mt-4 space-y-1 text-sm">
         {[
           "대시보드",
           "Drawing 세트",
@@ -14,7 +14,7 @@ const Sidebar = () => {
         ].map((item) => (
           <button
             key={item}
-            className="w-full rounded-xl px-3 py-2 text-left text-slate-700 transition hover:bg-slate-100"
+            className="w-full rounded-lg px-3 py-2.5 text-left font-medium text-concrete-700 transition hover:bg-concrete-100 dark:text-concrete-300 dark:hover:bg-concrete-800"
             type="button"
           >
             {item}
