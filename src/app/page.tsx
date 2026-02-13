@@ -1,12 +1,15 @@
 import { Header, MainArea, Sidebar } from "@/widgets/layout";
 import { mockMetadata } from "@/shared/mock";
 import { SectionTitle } from "@/shared/ui";
+import { parseDrawingMetadata } from "@/entities/drawing/model";
+import { DrawingExplorer } from "@/widgets/drawing-tree";
 
 const HomePage = () => {
   const drawings = Object.values(mockMetadata.drawings);
   const disciplines = mockMetadata.disciplines.map(
     (discipline) => discipline.name
   );
+  const parsed = parseDrawingMetadata(mockMetadata);
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
@@ -14,6 +17,7 @@ const HomePage = () => {
       <div className="grid grid-cols-1 gap-6 px-4 pb-8 pt-5 md:grid-cols-[240px_1fr] md:gap-8 md:px-8">
         <Sidebar />
         <MainArea>
+          <DrawingExplorer data={parsed} />
           <section className="rounded-lg bg-surface p-6 shadow-sm ring-1 ring-concrete-300 dark:ring-concrete-700">
             <div className="flex items-center justify-between">
               <div>
