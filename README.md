@@ -1,16 +1,47 @@
 # Project SiteDraw
 
-건설 프로젝트 도면 탐색 및 비교 시스템
+건설 현장 도면을 구조적으로 탐색하고 리비전 이력을 빠르게 파악하는 웹 기반 UI 프로토타입입니다.
 
-## 프로젝트 개요
+## 프로젝트 요약
 
-건설 현장 실무자들이 태블릿과 데스크톱에서 도면을 구조적으로 탐색하고 비교하는 웹 기반 시스템입니다.
+- 현장 실무자의 탐색 흐름(공간 → 공종 → 리비전)에 맞춘 트리 구조
+- 리비전 목록/변경 사항/경로 컨텍스트를 한 화면에서 파악
+- JSON 메타데이터 기반 파싱 로직과 내부 모델 분리
 
-### 핵심 기능
-- 계층 구조 기반 도면 탐색 (프로젝트 > 건물 > 층 > 영역)
-- 공종별 도면 관리 (건축/구조/설비 등)
-- Revision 버전 관리 및 비교
-- 다중 오버레이 뷰
+## 진행 상황
+
+- [x] 도면 메타데이터 타입 정의
+- [x] JSON 파싱 로직 및 탐색 트리 모델
+- [x] 탐색 구조 UI(트리 + 컨텍스트 패널)
+- [x] 모노톤(흑백) UI 테마 정리
+- [ ] 도면 이미지 뷰어 및 오버레이 렌더링
+- [ ] 리비전 비교 뷰
+- [ ] 필터(공종/리비전/영역) 기능
+
+## 변경 사항
+
+- 다크모드 제거, 흑백 모노톤 테마로 단순화
+- 탐색 트리와 리비전 리스트 기반 UI 추가
+- JSON 메타데이터 파싱 결과를 내부 모델로 변환
+
+## 슈팅 에러(문제/해결)
+
+- **중복 default export 에러**
+	- 원인: 같은 컴포넌트에서 `export default`가 중복됨
+	- 해결: 중복 export 제거
+- **타입 오류: DisciplineName**
+	- 원인: `Object.entries()`가 `string`으로 추론됨
+	- 해결: `DisciplineName` 튜플로 캐스팅
+- **텍스트 대비 문제**
+	- 원인: 배경/텍스트 색상 매핑 불일치
+	- 해결: 흑백 모노톤으로 전역 색상 정리
+
+## 설계 방식
+
+- **소스/모델 분리**: `metadata.json`은 원본 데이터로 유지하고, UI는 파싱된 내부 모델 사용
+- **탐색 우선**: 실무자 흐름에 맞춰 탐색 트리와 컨텍스트를 상단 우선 배치
+- **타입 안정성**: 공종/리비전/도면 ID를 유니온/패턴 타입으로 제한
+- **단순성**: 흑백 테마로 시각적 노이즈 최소화
 
 ## 기술 스택
 
@@ -19,82 +50,6 @@
 - **Styling**: Tailwind CSS 4
 - **Architecture**: FSD (Feature-Sliced Design)
 - **Deployment**: Vercel
-
-## UI 테마 가이드
-
-### 디자인 컨셉
-Industrial / Construction / Professional - 콘크리트, 하드우드, 아이언 질감에서 영감을 받은 현장 도구 느낌의 전문 UI
-
-### 컬러 팔레트
-
-#### Main Colors - Concrete & Iron
-```
-concrete: 콘크리트 그레이 (50~950)
-- 기본 배경, 텍스트, 경계선
-- Light: #f8f9fa ~ Dark: #151619
-
-iron: 아이언 블루 (50~950)  
-- 서브 컬러, 버튼, 액센트
-- Light: #f4f6f8 ~ Dark: #1e2632
-
-steel: 스틸 네이비 (50~950)
-- 보조 액센트, 하이라이트
-- Light: #f3f6f9 ~ Dark: #282c3d
-```
-
-#### Accent Colors - Safety & Warning
-```
-safety: 안전모 옐로우 (50~950)
-- 포인트 컬러, 하이라이트
-- Primary: #f59e0b
-
-alert: 경고 오렌지 (50~950)
-- 경고, 알림, 긴급 표시
-- Primary: #f97316
-```
-
-### 영역별 컬러 가이드
-
-#### Header
-- Background: `bg-surface` (white/dark)
-- Border: `border-concrete-300`
-- Logo: `bg-iron-800`
-- Badge: `bg-concrete-200` / `bg-safety-500`
-
-#### Sidebar
-- Background: `bg-surface`
-- Border: `ring-concrete-300`
-- Menu Item: `text-concrete-700` → `hover:bg-concrete-100`
-- Title: `text-concrete-500`
-
-#### Main Content
-- Background: `bg-background` (#f8f9fa / #151619)
-- Card: `bg-surface` + `ring-concrete-300`
-- List Item: `bg-concrete-50` + `border-concrete-300`
-
-#### Buttons
-- Primary: `bg-iron-800 hover:bg-iron-900`
-- Secondary: `bg-concrete-200 hover:bg-concrete-300`
-- Accent: `bg-safety-500 hover:bg-safety-600`
-
-#### Status & Tags
-- Neutral: `bg-concrete-200 text-concrete-700`
-- Warning: `bg-safety-500 text-concrete-900`
-- Alert: `bg-alert-500 text-white`
-
-### 다크모드 지원
-
-라이트/다크 모드 모두 지원하며, CSS 변수를 통해 전환됩니다.
-
-- 다크모드 활성화: `class="dark"` 추가
-- 컬러 자동 전환: `text-concrete-900 dark:text-concrete-100`
-
-### UX 원칙
-
-1. **높은 가독성**: 야외 환경에서도 잘 보이는 대비
-2. **태블릿 최적화**: 장갑 낀 손으로도 누르기 쉬운 버튼 크기
-3. **정보 밀도**: 기능 중심, 불필요한 장식 최소화
-4. **전문성**: 장난스럽지 않은 B2B SaaS 느낌
 
 ## 개발 시작하기
 
