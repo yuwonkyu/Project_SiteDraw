@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/shared/lib";
-import { SectionTitle } from "@/shared/ui";
+import { Breadcrumb, SectionTitle } from "@/shared/ui";
 import type {
   NavigationNode,
   NavigationNodeKind,
@@ -54,15 +54,42 @@ const getRelatedRevisions = (
 
 type DrawingExplorerProps = {
   data: ParsedDrawingData;
+  selectedId: string;
+  onSelect: (id: string) => void;
 };
 
-const DrawingExplorer = ({ data }: DrawingExplorerProps) => {
-  const [selectedId, setSelectedId] = useState(data.tree.rootId);
+const DrawingExplorer = ({ data, selectedId, onSelect }: DrawingExplorerProps) => {
+  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({
+    [data.tree.rootId]: true,
+  });
 
   const selectedNode = data.tree.nodes[selectedId];
   const relatedRevisions = selectedNode
     ? getRelatedRevisions(selectedNode, data.revisions)
     : [];
+
+  useEffect(() => {
+    if (!selectedId) {
+      return;
+    }
+
+    const nextExpanded: Record<string, boolean> = {};
+    let current = data.tree.nodes[selectedId];
+
+    while (current?.parentId) {
+      nextExpanded[current.parentId] = true;
+      current = data.tree.nodes[current.parentId];
+    }
+
+    if (data.tree.nodes[selectedId]?.children?.length) {
+      nextExpanded[selectedId] = true;
+    }
+
+    setExpandedIds((prev) => ({
+      ...prev,
+      ...nextExpanded,
+    }));
+  }, [data.tree.nodes, selectedId]);
 
   const sortedChildren = useMemo(() => {
     const cache: Record<string, string[]> = {};
@@ -93,27 +120,61 @@ const DrawingExplorer = ({ data }: DrawingExplorerProps) => {
 
     const isSelected = node.id === selectedId;
     const children = sortedChildren[node.id] ?? [];
+    const hasChildren = children.length > 0;
+    const isExpanded = expandedIds[node.id] ?? false;
+
+    const handleSelect = () => {
+      onSelect(node.id);
+      if (!hasChildren) {
+        return;
+      }
+      setExpandedIds((prev) => ({
+        ...prev,
+        [node.id]: !isExpanded,
+      }));
+    };
 
     return (
       <div key={node.id} className="space-y-1">
-        <button
+        <div
           className={cn(
-            "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition",
-            "text-black",
-            isSelected
-              ? "bg-gray-700 text-white"
-              : "hover:bg-gray-100"
+            "rounded-md",
+            depth > 0 ? "border-l border-black/20 pl-3" : ""
           )}
-          style={{ marginLeft: depth * 12 }}
-          type="button"
-          onClick={() => setSelectedId(node.id)}
+          style={{ marginLeft: depth > 0 ? depth * 10 : 0 }}
         >
-          <span className="min-w-14 text-xs font-semibold uppercase text-black">
-            {kindLabel[node.kind]}
-          </span>
-          <span className="truncate">{node.name}</span>
-        </button>
-        {children.length > 0 && (
+          <button
+            className={cn(
+              "flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition",
+              isSelected
+                ? "bg-gray-700 text-white"
+                : "text-black hover:bg-gray-100"
+            )}
+            type="button"
+            onClick={handleSelect}
+          >
+            <span
+              className={cn(
+                "flex h-5 w-5 items-center justify-center rounded border text-[10px]",
+                "border-black",
+                isSelected ? "bg-white text-black" : "bg-white",
+                hasChildren ? "" : "opacity-40"
+              )}
+            >
+              {hasChildren ? (isExpanded ? "-" : "+") : ""}
+            </span>
+            <span
+              className={cn(
+                "min-w-14 rounded-full border border-black px-2 py-0.5 text-[10px] font-semibold uppercase",
+                isSelected ? "border-white text-white" : "text-black"
+              )}
+            >
+              {kindLabel[node.kind]}
+            </span>
+            <span className="truncate">{node.name}</span>
+          </button>
+        </div>
+        {hasChildren && isExpanded && (
           <div className="space-y-1">
             {children.map((childId) => renderNode(childId, depth + 1))}
           </div>
@@ -138,9 +199,9 @@ const DrawingExplorer = ({ data }: DrawingExplorerProps) => {
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-black">
                 경로
               </p>
-              <p className="mt-2 text-sm font-semibold text-black">
-                {selectedNode.path.join(" > ")}
-              </p>
+              <div className="mt-2">
+                <Breadcrumb items={selectedNode.path} />
+              </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-md border border-black bg-white p-3">
