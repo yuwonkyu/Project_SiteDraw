@@ -162,13 +162,13 @@ const DrawingViewer = ({ data, selectedId, onSelect }: DrawingViewerProps) => {
         ) : (
           <div className="relative max-h-130 w-full overflow-auto p-4">
             <div
-              className="relative inline-block max-w-full"
-              style={{ width: baseSize.width, height: baseSize.height }}
+              className="relative inline-block w-full"
+              style={{ maxWidth: baseSize.width, maxHeight: baseSize.height }}
             >
               <Image
                 src={`/drawings/${baseImage}`}
                 alt="기준 도면"
-                className="block h-auto w-auto max-w-full border border-black"
+                className="block h-auto w-full max-w-full border border-black"
                 width={baseSize.width}
                 height={baseSize.height}
                 unoptimized

@@ -1,4 +1,4 @@
-import { Header, MainArea, Sidebar } from "@/widgets/layout";
+import { Header, MainArea } from "@/widgets/layout";
 import { mockMetadata } from "@/shared/mock";
 import { SectionTitle } from "@/shared/ui";
 import { DrawingWorkspace } from "@/widgets/drawing-workspace";
@@ -12,8 +12,7 @@ const HomePage = () => {
   return (
     <div className="min-h-dvh bg-white text-black">
       <Header />
-      <div className="grid grid-cols-1 gap-6 px-4 pb-8 pt-5 md:grid-cols-[auto_1fr] md:gap-8 md:px-8">
-        <Sidebar />
+      <div className="grid grid-cols-1 gap-6 px-4 pb-8 pt-5 md:gap-8 md:px-8">
         <MainArea>
           <DrawingWorkspace metadata={mockMetadata} />
           <section className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-black">

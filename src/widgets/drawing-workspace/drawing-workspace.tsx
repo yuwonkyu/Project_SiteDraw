@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { parseDrawingMetadata } from "@/entities/drawing/model";
 import type { DrawingMetadata } from "@/entities/drawing/model";
+import { CurrentContext } from "@/widgets/drawing-context";
 import { DrawingExplorer } from "@/widgets/drawing-tree";
 import { DrawingViewer } from "@/widgets/drawing-viewer";
 
@@ -13,16 +14,19 @@ const DrawingWorkspace = ({ metadata }: { metadata: DrawingMetadata }) => {
 
   return (
     <div className="grid gap-4">
-      <DrawingExplorer
-        data={parsed}
-        selectedId={selectedId}
-        onSelect={setSelectedId}
-      />
-      <DrawingViewer
-        data={parsed}
-        selectedId={selectedId}
-        onSelect={setSelectedId}
-      />
+      <CurrentContext data={parsed} selectedId={selectedId} />
+      <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
+        <DrawingExplorer
+          data={parsed}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+        />
+        <DrawingViewer
+          data={parsed}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+        />
+      </div>
     </div>
   );
 };
