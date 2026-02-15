@@ -98,7 +98,12 @@ const DrawingViewer = ({ data, selectedId, onSelect }: DrawingViewerProps) => {
   }
 
   const hasOverlay = baseImage && overlayImage && baseImage !== overlayImage;
-  const polygon = selectedNode?.polygon ?? revisionEntry?.polygon;
+  const polygon =
+    selectedNode?.kind === "discipline" ||
+    selectedNode?.kind === "region" ||
+    selectedNode?.kind === "revision"
+      ? selectedNode.polygon ?? revisionEntry?.polygon
+      : revisionEntry?.polygon;
   const polygonPoints = toPoints(polygon?.vertices);
 
   const regionNodes = disciplineNode
