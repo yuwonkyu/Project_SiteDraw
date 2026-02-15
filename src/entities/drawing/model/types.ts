@@ -1,5 +1,5 @@
-// [x, y] 픽셀 좌표 쌍
-export type Vector2 = [number, number];
+// [x, y] 픽셀 좌표 쌍(원본 JSON은 길이 제한이 없을 수 있음)
+export type Vector2 = [number, number] | number[];
 
 // 프로젝트 기본 정보
 export interface ProjectInfo {

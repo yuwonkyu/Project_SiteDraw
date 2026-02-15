@@ -42,11 +42,14 @@ const buildPolygonStyle = (transform?: PolygonTransform) => {
   } as const;
 };
 
-const toPoints = (vertices?: Array<[number, number]>) => {
+const toPoints = (vertices?: Array<[number, number] | number[]>) => {
   if (!vertices || vertices.length === 0) {
     return "";
   }
-  return vertices.map(([x, y]) => `${x},${y}`).join(" ");
+  return vertices
+    .filter((vertex) => vertex.length >= 2)
+    .map(([x, y]) => `${x},${y}`)
+    .join(" ");
 };
 
 type DrawingViewerProps = {
