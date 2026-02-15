@@ -18,7 +18,11 @@ const DrawingWorkspace = ({ metadata }: { metadata: DrawingMetadata }) => {
         selectedId={selectedId}
         onSelect={setSelectedId}
       />
-      <DrawingViewer data={parsed} selectedId={selectedId} />
+      <DrawingViewer
+        data={parsed}
+        selectedId={selectedId}
+        onSelect={setSelectedId}
+      />
     </div>
   );
 };
