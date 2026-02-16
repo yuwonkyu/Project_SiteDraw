@@ -103,7 +103,7 @@ const CurrentContext = ({ data, selectedIds, visibleIds, onToggleVisibility }: C
                       <button
                         type="button"
                         onClick={() => onToggleVisibility(node.id)}
-                        className={`mt-0.5 flex-shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold transition ${
+                        className={`mt-0.5 shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold transition ${
                           isVisible
                             ? "border-black bg-white text-black hover:bg-gray-50"
                             : "border-black/30 bg-gray-100 text-black/50 hover:bg-gray-200"
