@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { cn } from "@/shared/lib";
 import { SectionTitle } from "@/shared/ui";
 import type {
   NavigationNode,
   NavigationNodeKind,
   ParsedDrawingData,
-  RevisionEntry,
 } from "@/entities/drawing/model/parsed-types";
 
 const kindOrder: Record<NavigationNodeKind, number> = {
@@ -22,34 +21,6 @@ const kindLabel: Record<NavigationNodeKind, string> = {
   discipline: "공종",
   region: "영역",
   revision: "리비전",
-};
-
-const getRelatedRevisions = (
-  node: NavigationNode,
-  revisions: RevisionEntry[]
-) => {
-  if (node.kind === "drawing") {
-    return revisions.filter((entry) => entry.drawingId === node.drawingId);
-  }
-  if (node.kind === "discipline") {
-    return revisions.filter(
-      (entry) =>
-        entry.drawingId === node.drawingId &&
-        entry.discipline === node.discipline
-    );
-  }
-  if (node.kind === "region") {
-    return revisions.filter(
-      (entry) =>
-        entry.drawingId === node.drawingId &&
-        entry.discipline === node.discipline &&
-        entry.regionId === node.regionId
-    );
-  }
-  if (node.kind === "revision") {
-    return revisions.filter((entry) => entry.id === node.id);
-  }
-  return [];
 };
 
 type DrawingExplorerProps = {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import { cn } from "@/shared/lib";
 import { SectionTitle } from "@/shared/ui";
@@ -16,14 +16,20 @@ const toPoints = (vertices?: Array<[number, number] | number[]>) => {
     .join(" ");
 };
 
-// 레이어 색상: 각 오버레이마다 다른 색상 사용
-const layerColors = [
-  { fill: "rgba(255, 0, 0, 0.1)", stroke: "#ff0000" }, // Red
-  { fill: "rgba(0, 0, 255, 0.1)", stroke: "#0000ff" }, // Blue
-  { fill: "rgba(0, 128, 0, 0.1)", stroke: "#008000" }, // Green
-  { fill: "rgba(255, 128, 0, 0.1)", stroke: "#ff8000" }, // Orange
-  { fill: "rgba(128, 0, 128, 0.1)", stroke: "#800080" }, // Purple
-];
+const LAYER_COLORS = [
+  { fill: "rgba(255, 0, 0, 0.1)", stroke: "#ff0000" },
+  { fill: "rgba(0, 0, 255, 0.1)", stroke: "#0000ff" },
+  { fill: "rgba(0, 128, 0, 0.1)", stroke: "#008000" },
+  { fill: "rgba(255, 128, 0, 0.1)", stroke: "#ff8000" },
+  { fill: "rgba(128, 0, 128, 0.1)", stroke: "#800080" },
+] as const;
+
+type OverlayInfo = {
+  nodeId: string;
+  disciplineName: string;
+  polygon?: { vertices?: Array<[number, number] | number[]> };
+  colorIndex: number;
+};
 
 type DrawingViewerProps = {
   data: ParsedDrawingData;
@@ -35,100 +41,80 @@ type DrawingViewerProps = {
 const DrawingViewer = ({ data, selectedIds, visibleIds, onSelect }: DrawingViewerProps) => {
   const [baseSize, setBaseSize] = useState({ width: 1600, height: 1000 });
 
-  // 선택된 노드들 추출
-  const selectedNodes = Array.from(selectedIds)
-    .map((id) => data.tree.nodes[id])
-    .filter((node) => !!node);
+  const { selectedNodes, primaryNode, baseImage } = useMemo(() => {
+    const nodes = Array.from(selectedIds)
+      .map((id) => data.tree.nodes[id])
+      .filter((node) => !!node);
 
-  // 주 선택 노드 (첫 번째 또는 가장 상위)
-  const primarySelectedId = Array.from(selectedIds)[0];
-  const primaryNode = data.tree.nodes[primarySelectedId];
+    const primaryId = Array.from(selectedIds)[0];
+    const primary = data.tree.nodes[primaryId];
 
-  // 기본 도면 찾기
-  let baseImage: string | undefined = undefined;
-  let drawingNode = undefined;
+    let image: string | undefined;
+    let drawingNode = undefined;
 
-  if (primaryNode?.kind === "drawing") {
-    baseImage = primaryNode.image;
-    drawingNode = primaryNode;
-  } else if (primaryNode?.kind === "discipline") {
-    baseImage =
-      primaryNode.imageTransform?.relativeTo ?? primaryNode.image;
-    drawingNode = data.tree.nodes[`drawing:${primaryNode.drawingId}`];
-  } else if (primaryNode?.kind === "region") {
-    const parentDiscipline = data.tree.nodes[primaryNode.parentId ?? ""];
-    if (parentDiscipline && parentDiscipline.kind === "discipline") {
-      baseImage =
-        parentDiscipline.imageTransform?.relativeTo ??
-        parentDiscipline.image;
-      drawingNode = data.tree.nodes[
-        `drawing:${parentDiscipline.drawingId}`
-      ] as any;
-    }
-  } else if (primaryNode?.kind === "revision") {
-    const revisionEntry = data.revisions.find(
-      (entry) => entry.id === primaryNode.id
-    );
-    if (revisionEntry) {
-      baseImage = revisionEntry.parentImage ?? revisionEntry.image;
-    }
-  }
-
-  if (!baseImage && drawingNode && "image" in drawingNode) {
-    baseImage = (drawingNode as any).image;
-  }
-
-  // 모든 선택된 discipline의 오버레이 정보 수집
-  type OverlayInfo = {
-    nodeId: string;
-    disciplineName: string;
-    polygon?: { vertices?: Array<[number, number] | number[]> };
-    colorIndex: number;
-  };
-
-  const overlays: OverlayInfo[] = [];
-  const disciplineSet = new Set<string>(); // 중복 제거용
-
-  selectedNodes.forEach((node, index) => {
-    let disciplineNode = node;
-    let regionNode = undefined;
-
-    if (node.kind === "region") {
-      regionNode = node;
-      disciplineNode = data.tree.nodes[node.parentId ?? ""];
-    } else if (node.kind === "discipline") {
-      disciplineNode = node;
-    } else if (node.kind === "revision") {
-      const revEntry = data.revisions.find((entry) => entry.id === node.id);
-      if (revEntry) {
-        overlays.push({
-          nodeId: node.id,
-          disciplineName: `${revEntry.discipline} (Rev ${revEntry.version})`,
-          polygon: revEntry.polygon,
-          colorIndex: index % layerColors.length,
-        });
+    if (primary?.kind === "drawing") {
+      image = primary.image;
+      drawingNode = primary;
+    } else if (primary?.kind === "discipline") {
+      image = primary.imageTransform?.relativeTo ?? primary.image;
+      drawingNode = data.tree.nodes[`drawing:${primary.drawingId}`];
+    } else if (primary?.kind === "region") {
+      const parentDiscipline = data.tree.nodes[primary.parentId ?? ""];
+      if (parentDiscipline?.kind === "discipline") {
+        image = parentDiscipline.imageTransform?.relativeTo ?? parentDiscipline.image;
+        drawingNode = data.tree.nodes[`drawing:${parentDiscipline.drawingId}`];
       }
-      return;
-    } else if (node.kind === "drawing") {
-      return; // Drawing 노드는 오버레이하지 않음
+    } else if (primary?.kind === "revision") {
+      const revEntry = data.revisions.find((entry) => entry.id === primary.id);
+      if (revEntry) {
+        image = revEntry.parentImage ?? revEntry.image;
+      }
     }
 
-    if (
-      disciplineNode &&
-      disciplineNode.kind === "discipline"
-    ) {
-      const disciplineId = disciplineNode.id;
-      if (!disciplineSet.has(disciplineId)) {
-        disciplineSet.add(disciplineId);
-        overlays.push({
+    if (!image && drawingNode && "image" in drawingNode) {
+      image = (drawingNode as any).image;
+    }
+
+    return { selectedNodes: nodes, primaryNode: primary, baseImage: image };
+  }, [selectedIds, data]);
+
+  const overlays: OverlayInfo[] = useMemo(() => {
+    const items: OverlayInfo[] = [];
+    const disciplineSet = new Set<string>();
+
+    selectedNodes.forEach((node, index) => {
+      if (node.kind === "drawing") return;
+
+      if (node.kind === "revision") {
+        const revEntry = data.revisions.find((entry) => entry.id === node.id);
+        if (revEntry) {
+          items.push({
+            nodeId: node.id,
+            disciplineName: `${revEntry.discipline} (Rev ${revEntry.version})`,
+            polygon: revEntry.polygon,
+            colorIndex: index % LAYER_COLORS.length,
+          });
+        }
+        return;
+      }
+
+      let disciplineNode = node.kind === "region"
+        ? data.tree.nodes[node.parentId ?? ""]
+        : node;
+
+      if (disciplineNode?.kind === "discipline" && !disciplineSet.has(disciplineNode.id)) {
+        disciplineSet.add(disciplineNode.id);
+        items.push({
           nodeId: disciplineNode.id,
           disciplineName: disciplineNode.name,
           polygon: disciplineNode.polygon,
-          colorIndex: overlays.length % layerColors.length,
+          colorIndex: items.length % LAYER_COLORS.length,
         });
       }
-    }
-  });
+    });
+
+    return items;
+  }, [selectedNodes, data.revisions]);
 
   // visibleIds로 필터링
   const visibleOverlays = overlays.filter((overlay) =>
@@ -185,7 +171,7 @@ const DrawingViewer = ({ data, selectedIds, visibleIds, onSelect }: DrawingViewe
               key={region.id}
               className={cn(
                 "rounded-full border px-3 py-1 font-semibold",
-                primarySelectedId === region.id
+                primaryNode?.id === region.id
                   ? "bg-gray-700 text-white"
                   : "bg-white text-black"
               )}
@@ -231,7 +217,7 @@ const DrawingViewer = ({ data, selectedIds, visibleIds, onSelect }: DrawingViewe
                     if (!points) return null;
 
                     const color =
-                      layerColors[overlay.colorIndex % layerColors.length];
+                      LAYER_COLORS[overlay.colorIndex % LAYER_COLORS.length];
 
                     return (
                       <g key={overlay.nodeId}>
@@ -260,7 +246,7 @@ const DrawingViewer = ({ data, selectedIds, visibleIds, onSelect }: DrawingViewe
             <div className="flex flex-wrap gap-2">
               {visibleOverlays.map((overlay, idx) => {
                 const color =
-                  layerColors[overlay.colorIndex % layerColors.length];
+                  LAYER_COLORS[overlay.colorIndex % LAYER_COLORS.length];
                 return (
                   <div
                     key={overlay.nodeId}
