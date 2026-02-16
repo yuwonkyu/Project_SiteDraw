@@ -43,9 +43,11 @@ const getRelatedRevisions = (
 type CurrentContextProps = {
   data: ParsedDrawingData;
   selectedIds: Set<string>;
+  visibleIds: Set<string>;
+  onToggleVisibility: (id: string) => void;
 };
 
-const CurrentContext = ({ data, selectedIds }: CurrentContextProps) => {
+const CurrentContext = ({ data, selectedIds, visibleIds, onToggleVisibility }: CurrentContextProps) => {
   const selectedNodes = Array.from(selectedIds)
     .map((id) => data.tree.nodes[id])
     .filter((node) => !!node);
@@ -78,19 +80,42 @@ const CurrentContext = ({ data, selectedIds }: CurrentContextProps) => {
               활성 레이어 ({selectedNodes.length})
             </p>
             <div className="space-y-2">
-              {selectedNodes.map((node) => (
-                <div
-                  key={node.id}
-                  className="rounded-md border border-black bg-gray-50 px-3 py-2"
-                >
-                  <p className="text-xs font-semibold text-black">
-                    {kindLabel[node.kind]} · {node.name}
-                  </p>
-                  <p className="mt-1 text-[11px] text-black">
-                    {node.path.join(" > ")}
-                  </p>
-                </div>
-              ))}
+              {selectedNodes.map((node) => {
+                const isVisible = visibleIds.has(node.id);
+                return (
+                  <div
+                    key={node.id}
+                    className={`rounded-md border px-3 py-2 transition ${
+                      isVisible
+                        ? "border-black bg-gray-50"
+                        : "border-black/30 bg-gray-200/50"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <p className="text-xs font-semibold text-black">
+                          {kindLabel[node.kind]} · {node.name}
+                        </p>
+                        <p className="mt-1 text-[11px] text-black/70">
+                          {node.path.join(" > ")}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onToggleVisibility(node.id)}
+                        className={`mt-0.5 flex-shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold transition ${
+                          isVisible
+                            ? "border-black bg-white text-black hover:bg-gray-50"
+                            : "border-black/30 bg-gray-100 text-black/50 hover:bg-gray-200"
+                        }`}
+                        title={isVisible ? "레이어 숨기기" : "레이어 표시"}
+                      >
+                        {isVisible ? "표시" : "숨김"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 

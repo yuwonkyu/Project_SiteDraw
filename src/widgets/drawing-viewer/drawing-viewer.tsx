@@ -64,10 +64,11 @@ const layerColors = [
 type DrawingViewerProps = {
   data: ParsedDrawingData;
   selectedIds: Set<string>;
+  visibleIds: Set<string>;
   onSelect: (id: string, ctrlKey: boolean) => void;
 };
 
-const DrawingViewer = ({ data, selectedIds, onSelect }: DrawingViewerProps) => {
+const DrawingViewer = ({ data, selectedIds, visibleIds, onSelect }: DrawingViewerProps) => {
   const [baseSize, setBaseSize] = useState({ width: 1600, height: 1000 });
 
   // 선택된 노드들 추출
@@ -165,6 +166,11 @@ const DrawingViewer = ({ data, selectedIds, onSelect }: DrawingViewerProps) => {
     }
   });
 
+  // visibleIds로 필터링
+  const visibleOverlays = overlays.filter((overlay) =>
+    visibleIds.has(overlay.nodeId)
+  );
+
   // Region 영역 처리
   const parentNode =
     primaryNode?.kind === "region"
@@ -250,13 +256,13 @@ const DrawingViewer = ({ data, selectedIds, onSelect }: DrawingViewerProps) => {
                   });
                 }}
               />
-              {overlays.length > 0 ? (
+              {visibleOverlays.length > 0 ? (
                 <svg
                   className="pointer-events-none absolute left-0 top-0 h-full w-full"
                   viewBox={`0 0 ${baseSize.width} ${baseSize.height}`}
                   preserveAspectRatio="xMinYMin meet"
                 >
-                  {overlays.map((overlay, idx) => {
+                  {visibleOverlays.map((overlay, idx) => {
                     const points = toPoints(overlay.polygon?.vertices);
                     if (!points) return null;
 
@@ -282,13 +288,13 @@ const DrawingViewer = ({ data, selectedIds, onSelect }: DrawingViewerProps) => {
         )}
       </div>
       <div className="mt-3">
-        {overlays.length > 0 ? (
+        {visibleOverlays.length > 0 ? (
           <div>
             <p className="text-xs font-semibold text-black mb-2">
-              활성 오버레이 ({overlays.length})
+              활성 오버레이 ({visibleOverlays.length})
             </p>
             <div className="flex flex-wrap gap-2">
-              {overlays.map((overlay, idx) => {
+              {visibleOverlays.map((overlay, idx) => {
                 const color =
                   layerColors[overlay.colorIndex % layerColors.length];
                 return (
