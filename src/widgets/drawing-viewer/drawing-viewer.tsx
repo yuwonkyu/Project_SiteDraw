@@ -4,43 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { cn } from "@/shared/lib";
 import { SectionTitle } from "@/shared/ui";
-import type {
-  ImageTransform,
-  PolygonTransform,
-  ParsedDrawingData,
-} from "@/entities/drawing/model";
-
-const buildTransformStyle = (transform?: ImageTransform) => {
-  if (!transform) {
-    return undefined;
-  }
-  const { x, y, scale, rotation } = transform;
-  const translateX = Number.isFinite(x) ? x : 0;
-  const translateY = Number.isFinite(y) ? y : 0;
-  const nextScale = Number.isFinite(scale) ? scale : 1;
-  const nextRotation = Number.isFinite(rotation) ? rotation : 0;
-
-  return {
-    transform: `translate(${translateX}px, ${translateY}px) scale(${nextScale}) rotate(${nextRotation}rad)`,
-    transformOrigin: "0 0",
-  } as const;
-};
-
-const buildPolygonStyle = (transform?: PolygonTransform) => {
-  if (!transform) {
-    return undefined;
-  }
-  const { x, y, scale, rotation } = transform;
-  const translateX = Number.isFinite(x) ? x : 0;
-  const translateY = Number.isFinite(y) ? y : 0;
-  const nextScale = Number.isFinite(scale) ? scale : 1;
-  const nextRotation = Number.isFinite(rotation) ? rotation : 0;
-
-  return {
-    transform: `translate(${translateX}px, ${translateY}px) scale(${nextScale}) rotate(${nextRotation}rad)`,
-    transformOrigin: "0 0",
-  } as const;
-};
+import type { ParsedDrawingData } from "@/entities/drawing/model";
 
 const toPoints = (vertices?: Array<[number, number] | number[]>) => {
   if (!vertices || vertices.length === 0) {
