@@ -52,69 +52,137 @@ const toPoints = (vertices?: Array<[number, number] | number[]>) => {
     .join(" ");
 };
 
+// 레이어 색상: 각 오버레이마다 다른 색상 사용
+const layerColors = [
+  { fill: "rgba(255, 0, 0, 0.1)", stroke: "#ff0000" }, // Red
+  { fill: "rgba(0, 0, 255, 0.1)", stroke: "#0000ff" }, // Blue
+  { fill: "rgba(0, 128, 0, 0.1)", stroke: "#008000" }, // Green
+  { fill: "rgba(255, 128, 0, 0.1)", stroke: "#ff8000" }, // Orange
+  { fill: "rgba(128, 0, 128, 0.1)", stroke: "#800080" }, // Purple
+];
+
 type DrawingViewerProps = {
   data: ParsedDrawingData;
-  selectedId: string;
-  onSelect: (id: string) => void;
+  selectedIds: Set<string>;
+  onSelect: (id: string, ctrlKey: boolean) => void;
 };
 
-const DrawingViewer = ({ data, selectedId, onSelect }: DrawingViewerProps) => {
+const DrawingViewer = ({ data, selectedIds, onSelect }: DrawingViewerProps) => {
   const [baseSize, setBaseSize] = useState({ width: 1600, height: 1000 });
-  const [overlaySize, setOverlaySize] = useState({ width: 1600, height: 1000 });
 
-  const selectedNode = data.tree.nodes[selectedId];
+  // 선택된 노드들 추출
+  const selectedNodes = Array.from(selectedIds)
+    .map((id) => data.tree.nodes[id])
+    .filter((node) => !!node);
+
+  // 주 선택 노드 (첫 번째 또는 가장 상위)
+  const primarySelectedId = Array.from(selectedIds)[0];
+  const primaryNode = data.tree.nodes[primarySelectedId];
+
+  // 기본 도면 찾기
+  let baseImage: string | undefined = undefined;
+  let drawingNode = undefined;
+
+  if (primaryNode?.kind === "drawing") {
+    baseImage = primaryNode.image;
+    drawingNode = primaryNode;
+  } else if (primaryNode?.kind === "discipline") {
+    baseImage =
+      primaryNode.imageTransform?.relativeTo ?? primaryNode.image;
+    drawingNode = data.tree.nodes[`drawing:${primaryNode.drawingId}`];
+  } else if (primaryNode?.kind === "region") {
+    const parentDiscipline = data.tree.nodes[primaryNode.parentId ?? ""];
+    if (parentDiscipline && parentDiscipline.kind === "discipline") {
+      baseImage =
+        parentDiscipline.imageTransform?.relativeTo ??
+        parentDiscipline.image;
+      drawingNode = data.tree.nodes[
+        `drawing:${parentDiscipline.drawingId}`
+      ] as any;
+    }
+  } else if (primaryNode?.kind === "revision") {
+    const revisionEntry = data.revisions.find(
+      (entry) => entry.id === primaryNode.id
+    );
+    if (revisionEntry) {
+      baseImage = revisionEntry.parentImage ?? revisionEntry.image;
+    }
+  }
+
+  if (!baseImage && drawingNode && "image" in drawingNode) {
+    baseImage = (drawingNode as any).image;
+  }
+
+  // 모든 선택된 discipline의 오버레이 정보 수집
+  type OverlayInfo = {
+    nodeId: string;
+    disciplineName: string;
+    polygon?: { vertices?: Array<[number, number] | number[]> };
+    colorIndex: number;
+  };
+
+  const overlays: OverlayInfo[] = [];
+  const disciplineSet = new Set<string>(); // 중복 제거용
+
+  selectedNodes.forEach((node, index) => {
+    let disciplineNode = node;
+    let regionNode = undefined;
+
+    if (node.kind === "region") {
+      regionNode = node;
+      disciplineNode = data.tree.nodes[node.parentId ?? ""];
+    } else if (node.kind === "discipline") {
+      disciplineNode = node;
+    } else if (node.kind === "revision") {
+      const revEntry = data.revisions.find((entry) => entry.id === node.id);
+      if (revEntry) {
+        overlays.push({
+          nodeId: node.id,
+          disciplineName: `${revEntry.discipline} (Rev ${revEntry.version})`,
+          polygon: revEntry.polygon,
+          colorIndex: index % layerColors.length,
+        });
+      }
+      return;
+    } else if (node.kind === "drawing") {
+      return; // Drawing 노드는 오버레이하지 않음
+    }
+
+    if (
+      disciplineNode &&
+      disciplineNode.kind === "discipline"
+    ) {
+      const disciplineId = disciplineNode.id;
+      if (!disciplineSet.has(disciplineId)) {
+        disciplineSet.add(disciplineId);
+        overlays.push({
+          nodeId: disciplineNode.id,
+          disciplineName: disciplineNode.name,
+          polygon: disciplineNode.polygon,
+          colorIndex: overlays.length % layerColors.length,
+        });
+      }
+    }
+  });
+
+  // Region 영역 처리
   const parentNode =
-    selectedNode?.kind === "region"
-      ? data.tree.nodes[selectedNode.parentId ?? ""]
+    primaryNode?.kind === "region"
+      ? data.tree.nodes[primaryNode.parentId ?? ""]
       : undefined;
   const disciplineNode =
-    selectedNode?.kind === "discipline"
-      ? selectedNode
+    primaryNode?.kind === "discipline"
+      ? primaryNode
       : parentNode && parentNode.kind === "discipline"
       ? parentNode
       : undefined;
-  const drawingNode =
-    selectedNode?.kind === "drawing"
-      ? selectedNode
-      : selectedNode
-      ? data.tree.nodes[`drawing:${selectedNode.drawingId}`]
-      : undefined;
-
-  const revisionEntry = data.revisions.find((entry) => entry.id === selectedId);
-
-  let baseImage: string | undefined = undefined;
-  let overlayImage: string | undefined = undefined;
-  let overlayTransform: ImageTransform | undefined = undefined;
-
-  if (revisionEntry) {
-    baseImage = revisionEntry.parentImage ?? revisionEntry.image;
-    overlayImage = revisionEntry.image;
-    overlayTransform = revisionEntry.imageTransform;
-  } else if (selectedNode?.kind === "discipline") {
-    baseImage = selectedNode.imageTransform?.relativeTo ?? selectedNode.image;
-    overlayImage = selectedNode.image ?? undefined;
-    overlayTransform = selectedNode.imageTransform;
-  } else if (selectedNode?.kind === "drawing") {
-    baseImage = selectedNode.image;
-  } else if (drawingNode && "image" in drawingNode) {
-    baseImage = drawingNode.image;
-  }
-
-  const hasOverlay = baseImage && overlayImage && baseImage !== overlayImage;
-  const polygon =
-    selectedNode?.kind === "discipline" ||
-    selectedNode?.kind === "region" ||
-    selectedNode?.kind === "revision"
-      ? selectedNode.polygon ?? revisionEntry?.polygon
-      : revisionEntry?.polygon;
-  const polygonPoints = toPoints(polygon?.vertices);
 
   const regionNodes = disciplineNode
     ? disciplineNode.children
         .map((childId) => data.tree.nodes[childId])
         .filter((node) => !!node && node.kind === "region")
     : [];
-  const isRegionSelected = selectedNode?.kind === "region";
+  const isRegionSelected = primaryNode?.kind === "region";
   const hasRegions = regionNodes.length > 0;
 
   return (
@@ -122,7 +190,7 @@ const DrawingViewer = ({ data, selectedId, onSelect }: DrawingViewerProps) => {
       <div className="flex items-center justify-between">
         <SectionTitle>도면 뷰어</SectionTitle>
         <span className="rounded-full border border-black px-3 py-1 text-xs font-semibold">
-          기본 렌더링
+          {selectedNodes.length > 1 ? `${selectedNodes.length}개 레이어` : "기본 렌더링"}
         </span>
       </div>
       {hasRegions ? (
@@ -137,7 +205,7 @@ const DrawingViewer = ({ data, selectedId, onSelect }: DrawingViewerProps) => {
             )}
             type="button"
             onClick={() =>
-              disciplineNode ? onSelect(disciplineNode.id) : undefined
+              disciplineNode ? onSelect(disciplineNode.id, false) : undefined
             }
           >
             전체
@@ -147,12 +215,12 @@ const DrawingViewer = ({ data, selectedId, onSelect }: DrawingViewerProps) => {
               key={region.id}
               className={cn(
                 "rounded-full border px-3 py-1 font-semibold",
-                selectedId === region.id
+                primarySelectedId === region.id
                   ? "bg-gray-700 text-white"
                   : "bg-white text-black"
               )}
               type="button"
-              onClick={() => onSelect(region.id)}
+              onClick={() => onSelect(region.id, false)}
             >
               {region.name}
             </button>
@@ -182,55 +250,73 @@ const DrawingViewer = ({ data, selectedId, onSelect }: DrawingViewerProps) => {
                   });
                 }}
               />
-              {polygonPoints ? (
+              {overlays.length > 0 ? (
                 <svg
                   className="pointer-events-none absolute left-0 top-0 h-full w-full"
                   viewBox={`0 0 ${baseSize.width} ${baseSize.height}`}
                   preserveAspectRatio="xMinYMin meet"
                 >
-                  <g style={buildPolygonStyle(polygon?.polygonTransform)}>
-                    <polygon
-                      points={polygonPoints}
-                      fill="rgba(0, 0, 0, 0.08)"
-                      stroke="#000000"
-                      strokeWidth="2"
-                      vectorEffect="non-scaling-stroke"
-                    />
-                  </g>
+                  {overlays.map((overlay, idx) => {
+                    const points = toPoints(overlay.polygon?.vertices);
+                    if (!points) return null;
+
+                    const color =
+                      layerColors[overlay.colorIndex % layerColors.length];
+
+                    return (
+                      <g key={overlay.nodeId}>
+                        <polygon
+                          points={points}
+                          fill={color.fill}
+                          stroke={color.stroke}
+                          strokeWidth="2"
+                          vectorEffect="non-scaling-stroke"
+                        />
+                      </g>
+                    );
+                  })}
                 </svg>
-              ) : null}
-              {hasOverlay && overlayImage ? (
-                <Image
-                  src={`/drawings/${overlayImage}`}
-                  alt="오버레이 도면"
-                  className={cn(
-                    "absolute left-0 top-0 h-auto w-auto max-w-full border border-black/40"
-                  )}
-                  style={buildTransformStyle(overlayTransform)}
-                  width={overlaySize.width}
-                  height={overlaySize.height}
-                  unoptimized
-                  onLoadingComplete={(img) => {
-                    setOverlaySize({
-                      width: img.naturalWidth,
-                      height: img.naturalHeight,
-                    });
-                  }}
-                />
               ) : null}
             </div>
           </div>
         )}
       </div>
-      {hasOverlay ? (
-        <p className="mt-3 text-xs text-black">
-          기준 도면 위에 선택 도면을 변환값으로 정렬합니다.
-        </p>
-      ) : (
-        <p className="mt-3 text-xs text-black">
-          기준 도면만 표시합니다.
-        </p>
-      )}
+      <div className="mt-3">
+        {overlays.length > 0 ? (
+          <div>
+            <p className="text-xs font-semibold text-black mb-2">
+              활성 오버레이 ({overlays.length})
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {overlays.map((overlay, idx) => {
+                const color =
+                  layerColors[overlay.colorIndex % layerColors.length];
+                return (
+                  <div
+                    key={overlay.nodeId}
+                    className="flex items-center gap-2 rounded-full border border-black px-2 py-1 text-xs"
+                    style={{ borderColor: color.stroke }}
+                  >
+                    <div
+                      className="h-3 w-3 rounded-sm"
+                      style={
+                        { backgroundColor: color.stroke } as React.CSSProperties
+                      }
+                    />
+                    <span>{overlay.disciplineName}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-xs text-black">
+              다중 도면을 색상으로 구분하여 표시합니다. Ctrl+Click으로 레이어를
+              추가할 수 있습니다.
+            </p>
+          </div>
+        ) : (
+          <p className="text-xs text-black">선택된 오버레이가 없습니다.</p>
+        )}
+      </div>
     </section>
   );
 };

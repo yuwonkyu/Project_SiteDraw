@@ -54,37 +54,41 @@ const getRelatedRevisions = (
 
 type DrawingExplorerProps = {
   data: ParsedDrawingData;
-  selectedId: string;
-  onSelect: (id: string) => void;
+  selectedIds: Set<string>;
+  onSelect: (id: string, ctrlKey: boolean) => void;
 };
 
-const DrawingExplorer = ({ data, selectedId, onSelect }: DrawingExplorerProps) => {
+const DrawingExplorer = ({ data, selectedIds, onSelect }: DrawingExplorerProps) => {
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({
     [data.tree.rootId]: true,
   });
 
   useEffect(() => {
-    if (!selectedId) {
+    if (selectedIds.size === 0) {
       return;
     }
 
     const nextExpanded: Record<string, boolean> = {};
-    let current = data.tree.nodes[selectedId];
 
-    while (current?.parentId) {
-      nextExpanded[current.parentId] = true;
-      current = data.tree.nodes[current.parentId];
-    }
+    // 모든 선택된 id에 대해 부모 경로를 확장
+    selectedIds.forEach((selectedId) => {
+      let current = data.tree.nodes[selectedId];
 
-    if (data.tree.nodes[selectedId]?.children?.length) {
-      nextExpanded[selectedId] = true;
-    }
+      while (current?.parentId) {
+        nextExpanded[current.parentId] = true;
+        current = data.tree.nodes[current.parentId];
+      }
+
+      if (data.tree.nodes[selectedId]?.children?.length) {
+        nextExpanded[selectedId] = true;
+      }
+    });
 
     setExpandedIds((prev) => ({
       ...prev,
       ...nextExpanded,
     }));
-  }, [data.tree.nodes, selectedId]);
+  }, [data.tree.nodes, selectedIds]);
 
   const sortedChildren = useMemo(() => {
     const cache: Record<string, string[]> = {};
@@ -113,13 +117,13 @@ const DrawingExplorer = ({ data, selectedId, onSelect }: DrawingExplorerProps) =
       return null;
     }
 
-    const isSelected = node.id === selectedId;
+    const isSelected = selectedIds.has(node.id);
     const children = sortedChildren[node.id] ?? [];
     const hasChildren = children.length > 0;
     const isExpanded = expandedIds[node.id] ?? false;
 
-    const handleSelect = () => {
-      onSelect(node.id);
+    const handleSelect = (e: React.MouseEvent<HTMLButtonElement>) => {
+      onSelect(node.id, e.ctrlKey || e.metaKey);
       if (!hasChildren) {
         return;
       }
@@ -147,6 +151,7 @@ const DrawingExplorer = ({ data, selectedId, onSelect }: DrawingExplorerProps) =
             )}
             type="button"
             onClick={handleSelect}
+            title="Ctrl+Click for multi-select / Click to select"
           >
             <span
               className={cn(
