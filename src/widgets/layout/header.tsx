@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { cn } from "@/shared/lib";
 
@@ -13,8 +13,8 @@ const NAVIGATION_ITEMS = [
 ] as const;
 
 const HEADER_STYLES = {
-  container: "flex flex-wrap items-center justify-between gap-4 border-b border-black bg-white shadow-sm px-4 py-4 md:px-8",
-  logoButton: "h-9 w-9 rounded-lg flex items-center justify-center bg-black text-white text-sm font-bold transition hover:opacity-80 cursor-pointer",
+  container: "flex flex-wrap items-center justify-between gap-4 border-b border-black bg-white shadow-sm p-4 md:px-8",
+  logoButton: "size-9 rounded-lg flex items-center justify-center bg-white text-white text-sm font-bold transition hover:opacity-80 cursor-pointer",
   title: "text-sm font-semibold text-black",
   subtitle: "text-xs text-black",
   navList: "flex flex-wrap items-center gap-2 text-xs",
@@ -38,7 +38,13 @@ const Header = () => {
         title="홈으로 돌아가기"
       >
         <div className={HEADER_STYLES.logoButton}>
-          <span>📐</span>
+          <Image 
+            src="/icon.png" 
+            alt="Project SiteDraw Logo" 
+            width={36} 
+            height={36}
+            className="rounded-lg"
+          />
         </div>
         <div>
           <p className={HEADER_STYLES.title}>Project SiteDraw</p>
