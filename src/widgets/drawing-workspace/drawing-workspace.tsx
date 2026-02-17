@@ -19,6 +19,7 @@ const DrawingWorkspace = ({ metadata }: DrawingWorkspaceProps) => {
   const [visibleIds, setVisibleIds] = useState<Set<string>>(
     new Set([parsed.tree.rootId])
   );
+  const [selectedRevisionId, setSelectedRevisionId] = useState<string>("");
 
   const handleSelect = useCallback((id: string, ctrlKey: boolean) => {
     setSelectedIds((prev) => {
@@ -39,6 +40,7 @@ const DrawingWorkspace = ({ metadata }: DrawingWorkspaceProps) => {
         next.clear();
         next.add(id);
         setVisibleIds(new Set([id]));
+        setSelectedRevisionId("");
       }
       return next;
     });
@@ -52,13 +54,19 @@ const DrawingWorkspace = ({ metadata }: DrawingWorkspaceProps) => {
     });
   }, []);
 
+  const handleRevisionSelect = useCallback((revisionId: string) => {
+    setSelectedRevisionId(revisionId);
+  }, []);
+
   return (
     <div className="grid gap-4">
       <CurrentContext 
         data={parsed} 
         selectedIds={selectedIds} 
         visibleIds={visibleIds}
+        selectedRevisionId={selectedRevisionId}
         onToggleVisibility={handleToggleVisibility}
+        onRevisionSelect={handleRevisionSelect}
       />
       <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
         <DrawingExplorer
@@ -70,6 +78,7 @@ const DrawingWorkspace = ({ metadata }: DrawingWorkspaceProps) => {
           data={parsed}
           selectedIds={selectedIds}
           visibleIds={visibleIds}
+          selectedRevisionId={selectedRevisionId}
           onSelect={handleSelect}
         />
       </div>

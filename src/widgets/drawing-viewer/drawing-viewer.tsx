@@ -35,10 +35,11 @@ type DrawingViewerProps = {
   data: ParsedDrawingData;
   selectedIds: Set<string>;
   visibleIds: Set<string>;
+  selectedRevisionId?: string;
   onSelect: (id: string, ctrlKey: boolean) => void;
 };
 
-const DrawingViewer = ({ data, selectedIds, visibleIds, onSelect }: DrawingViewerProps) => {
+const DrawingViewer = ({ data, selectedIds, visibleIds, selectedRevisionId, onSelect }: DrawingViewerProps) => {
   const [baseSize, setBaseSize] = useState({ width: 1600, height: 1000 });
 
   const { selectedNodes, primaryNode, baseImage } = useMemo(() => {

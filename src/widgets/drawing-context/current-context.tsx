@@ -44,10 +44,19 @@ type CurrentContextProps = {
   data: ParsedDrawingData;
   selectedIds: Set<string>;
   visibleIds: Set<string>;
+  selectedRevisionId: string;
   onToggleVisibility: (id: string) => void;
+  onRevisionSelect: (revisionId: string) => void;
 };
 
-const CurrentContext = ({ data, selectedIds, visibleIds, onToggleVisibility }: CurrentContextProps) => {
+const CurrentContext = ({ 
+  data, 
+  selectedIds, 
+  visibleIds, 
+  selectedRevisionId,
+  onToggleVisibility,
+  onRevisionSelect,
+}: CurrentContextProps) => {
   const selectedNodes = Array.from(selectedIds)
     .map((id) => data.tree.nodes[id])
     .filter((node) => !!node);
@@ -159,12 +168,17 @@ const CurrentContext = ({ data, selectedIds, visibleIds, onToggleVisibility }: C
                     relatedRevisions.map((entry) => (
                       <div
                         key={entry.id}
-                        className="rounded-md border border-black bg-white px-3 py-2 text-xs text-black"
+                        onClick={() => onRevisionSelect(entry.id)}
+                        className={`cursor-pointer rounded-md border px-3 py-2 text-xs transition-colors ${
+                          selectedRevisionId === entry.id
+                            ? "border-black bg-gray-700 text-white"
+                            : "border-black bg-white text-black"
+                        }`}
                       >
-                        <p className="font-semibold text-black">
+                        <p className="font-semibold">
                           {entry.version}
                         </p>
-                        <p className="mt-1 text-[11px] text-black">
+                        <p className="mt-1 text-[11px]">
                           {entry.revision.date} · {entry.discipline}
                           {entry.regionId ? ` / Region ${entry.regionId}` : ""}
                         </p>
