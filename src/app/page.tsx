@@ -1,13 +1,29 @@
+"use client";
+
+import { useRef } from "react";
 import { Header, MainArea } from "@/widgets/layout";
 import { mockMetadata } from "@/shared/mock";
 import { SectionTitle } from "@/shared/ui";
 import { DrawingWorkspace } from "@/widgets/drawing-workspace";
 
 const HomePage = () => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const drawings = Object.values(mockMetadata.drawings);
   const disciplines = mockMetadata.disciplines.map(
     (discipline) => discipline.name
   );
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      console.log("업로드 파일:", file.name, file.type, file.size);
+      alert(`파일 업로드: ${file.name}\n크기: ${(file.size / 1024).toFixed(2)}KB\n\n(현재 Mock 모드로 실제 업로드는 진행되지 않습니다.)`);
+    }
+  };
 
   return (
     <div className="min-h-dvh bg-white text-black">
@@ -28,11 +44,19 @@ const HomePage = () => {
                 </p>
               </div>
               <button
+                onClick={handleUploadClick}
                 className="hidden rounded-lg border border-black bg-white px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-gray-100 md:block"
                 type="button"
               >
                 새 업로드
               </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json,application/json,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                onChange={handleFileChange}
+                className="hidden"
+              />
             </div>
           </section>
 

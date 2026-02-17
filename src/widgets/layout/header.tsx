@@ -1,16 +1,20 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { cn } from "@/shared/lib";
 
 const NAVIGATION_ITEMS = [
-  "대시보드",
-  "Drawing 세트",
-  "Revision 이력",
-  "승인 대기",
-  "현장 메모",
+  { label: "대시보드", href: "#dashboard" },
+  { label: "Drawing 세트", href: "#drawings" },
+  { label: "Revision 이력", href: "#revisions" },
+  { label: "승인 대기", href: "#approvals" },
+  { label: "현장 메모", href: "#notes" },
 ] as const;
 
 const HEADER_STYLES = {
   container: "flex flex-wrap items-center justify-between gap-4 border-b border-black bg-white shadow-sm px-4 py-4 md:px-8",
-  logo: "h-9 w-9 rounded-lg flex items-center justify-center bg-black text-white text-sm font-bold",
+  logoButton: "h-9 w-9 rounded-lg flex items-center justify-center bg-black text-white text-sm font-bold transition hover:opacity-80 cursor-pointer",
   title: "text-sm font-semibold text-black",
   subtitle: "text-xs text-black",
   navList: "flex flex-wrap items-center gap-2 text-xs",
@@ -19,25 +23,38 @@ const HEADER_STYLES = {
 } as const;
 
 const Header = () => {
+  const router = useRouter();
+
+  const handleLogoClick = () => {
+    router.push("/");
+    router.refresh();
+  };
+
   return (
     <header className={HEADER_STYLES.container}>
-      <div className="flex items-center gap-3">
-        <div className={HEADER_STYLES.logo}>SD</div>
+      <button
+        onClick={handleLogoClick}
+        className="flex items-center gap-3 transition hover:opacity-80"
+        title="홈으로 돌아가기"
+      >
+        <div className={HEADER_STYLES.logoButton}>
+          <span>📐</span>
+        </div>
         <div>
           <p className={HEADER_STYLES.title}>Project SiteDraw</p>
           <p className={HEADER_STYLES.subtitle}>건설 Drawing 탐색기</p>
         </div>
-      </div>
+      </button>
       <nav className="order-3 w-full md:order-2 md:w-auto">
         <ul className={HEADER_STYLES.navList}>
           {NAVIGATION_ITEMS.map((item) => (
-            <li key={item}>
-              <button
+            <li key={item.label}>
+              <a
+                href={item.href}
                 className={HEADER_STYLES.navButton}
-                type="button"
               >
-                {item}
-              </button>
+                {item.label}
+              </a>
             </li>
           ))}
         </ul>
