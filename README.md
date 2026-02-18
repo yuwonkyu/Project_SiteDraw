@@ -6,6 +6,7 @@
 
 - 🚀 **배포 사이트**: [https://project-site-draw.vercel.app/](https://project-site-draw.vercel.app/)
 - 📦 **GitHub**: [https://github.com/yuwonkyu/Project_SiteDraw](https://github.com/yuwonkyu/Project_SiteDraw)
+- 📝 **Notion 프로젝트 문서**: [프로젝트 요약 및 스케줄 관리](https://illustrious-lip-d49.notion.site/Project_SiteDraw-305ecf9850a580809a98d6adb6cfae89?pvs=74)
 
 ---
 
