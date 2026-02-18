@@ -6,6 +6,7 @@ import type { DrawingMetadata } from "@/entities/drawing/model";
 import { CurrentContext } from "@/widgets/drawing-context";
 import { DrawingExplorer } from "@/widgets/drawing-tree";
 import { DrawingViewer } from "@/widgets/drawing-viewer";
+import { DrawingFilter } from "@/widgets/drawing-filter";
 
 type DrawingWorkspaceProps = {
   metadata: DrawingMetadata;
@@ -24,6 +25,7 @@ const DrawingWorkspace = ({ metadata }: DrawingWorkspaceProps) => {
   const [comparisonRevisions, setComparisonRevisions] = useState<Set<string>>(
     new Set()
   );
+  const [filterVisible, setFilterVisible] = useState(true);
 
   const handleSelect = useCallback((id: string, ctrlKey: boolean) => {
     setSelectedIds((prev) => {
@@ -94,6 +96,20 @@ const DrawingWorkspace = ({ metadata }: DrawingWorkspaceProps) => {
         onRevisionSelect={handleRevisionSelect}
         onAddToComparison={handleAddToComparison}
       />
+      {filterVisible && (
+        <DrawingFilter
+          data={parsed}
+          selectedIds={selectedIds}
+          visibleIds={visibleIds}
+          onSearch={(filteredIds) => {
+            // 필터 결과로 자동 선택
+            if (filteredIds.size > 0) {
+              setSelectedIds(new Set(Array.from(filteredIds).slice(0, 1)));
+            }
+          }}
+          onToggleDisciplineVisibility={handleToggleVisibility}
+        />
+      )}
       <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
         <DrawingExplorer
           data={parsed}

@@ -78,6 +78,7 @@ const DrawingViewer = ({
   const [markupDrawStart, setMarkupDrawStart] = useState({ x: 0, y: 0 });
   const markupCanvasRef = useRef<HTMLCanvasElement>(null);
   const markupCtxRef = useRef<CanvasRenderingContext2D | null>(null);
+  const markupHistoryRef = useRef<ImageData[]>([]);
 
   const { selectedNodes, primaryNode, baseImage } = useMemo(() => {
     const nodes = Array.from(selectedIds)
@@ -322,9 +323,18 @@ const DrawingViewer = ({
 
   // 마크업 드로잉 시작
   const handleMarkupMouseDown = useCallback((e: React.MouseEvent) => {
-    if (!isMarkupMode || !markupCanvasRef.current) return;
+    if (!isMarkupMode || !markupCanvasRef.current || !markupCtxRef.current) return;
     
     const canvas = markupCanvasRef.current;
+    const ctx = markupCtxRef.current;
+    
+    // 현재 상태를 히스토리에 저장
+    markupHistoryRef.current.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    // 히스토리 크기 제한 (최대 20개)
+    if (markupHistoryRef.current.length > 20) {
+      markupHistoryRef.current.shift();
+    }
+    
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -404,6 +414,19 @@ const DrawingViewer = ({
     const ctx = markupCtxRef.current;
     if (canvas && ctx) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      markupHistoryRef.current = [];
+    }
+  }, []);
+
+  // 마크업 되돌리기 (Undo)
+  const undoMarkup = useCallback(() => {
+    const canvas = markupCanvasRef.current;
+    const ctx = markupCtxRef.current;
+    if (!canvas || !ctx || markupHistoryRef.current.length === 0) return;
+    
+    const previousState = markupHistoryRef.current.pop();
+    if (previousState) {
+      ctx.putImageData(previousState, 0, 0);
     }
   }, []);
 
@@ -413,6 +436,19 @@ const DrawingViewer = ({
       initializeMarkupCanvas();
     }
   }, [baseSize, zoomLevel, isMarkupMode, initializeMarkupCanvas]);
+
+  // Ctrl+Z 단축키 처리
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && isMarkupMode) {
+        e.preventDefault();
+        undoMarkup();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isMarkupMode, undoMarkup]);
 
   // 캔버스에서의 wheel 이벤트 처리 - preventDefault로 페이지 스크롤 차단
   useEffect(() => {
@@ -592,6 +628,16 @@ const DrawingViewer = ({
           </div>
           
           <span className="text-black/30">|</span>
+          
+          <button
+            onClick={undoMarkup}
+            className="px-2 py-1 text-xs font-semibold bg-blue-500 text-white rounded hover:bg-blue-600 transition"
+            type="button"
+            title="되돌리기 (Ctrl+Z)"
+            disabled={markupHistoryRef.current.length === 0}
+          >
+            ↶ 취소
+          </button>
           
           <button
             onClick={clearMarkup}
