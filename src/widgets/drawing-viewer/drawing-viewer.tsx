@@ -53,7 +53,10 @@ const DrawingViewer = ({
 }: DrawingViewerProps) => {
   // 커스텀 훅들
   const viewer = useDrawingViewer();
-  const markup = useMarkup(viewer.viewerState.zoomLevel, viewer.viewerState.baseSize);
+  const markup = useMarkup(
+    viewer.viewerState.zoomLevel,
+    viewer.viewerState.baseSize,
+  );
   const comparison = useComparisonMode();
 
   // 기본 이미지 및 노드 정보
@@ -180,11 +183,18 @@ const DrawingViewer = ({
 
   // 마크업 이벤트 핸들러
   const handleMarkupMouseDown = (e: React.MouseEvent) => {
-    if (!markup.markupState.isMarkupMode || !markup.markupCanvasRef.current) return;
+    if (!markup.markupState.isMarkupMode || !markup.markupCanvasRef.current)
+      return;
 
     const rect = markup.markupCanvasRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / viewer.viewerState.zoomLevel / viewer.viewerState.zoomLevel;
-    const y = (e.clientY - rect.top) / viewer.viewerState.zoomLevel / viewer.viewerState.zoomLevel;
+    const x =
+      (e.clientX - rect.left) /
+      viewer.viewerState.zoomLevel /
+      viewer.viewerState.zoomLevel;
+    const y =
+      (e.clientY - rect.top) /
+      viewer.viewerState.zoomLevel /
+      viewer.viewerState.zoomLevel;
 
     markup.startDrawing(x, y);
   };
@@ -198,8 +208,14 @@ const DrawingViewer = ({
       return;
 
     const rect = markup.markupCanvasRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / viewer.viewerState.zoomLevel / viewer.viewerState.zoomLevel;
-    const y = (e.clientY - rect.top) / viewer.viewerState.zoomLevel / viewer.viewerState.zoomLevel;
+    const x =
+      (e.clientX - rect.left) /
+      viewer.viewerState.zoomLevel /
+      viewer.viewerState.zoomLevel;
+    const y =
+      (e.clientY - rect.top) /
+      viewer.viewerState.zoomLevel /
+      viewer.viewerState.zoomLevel;
 
     if (markup.markupState.markupTool === "pen") {
       markup.drawPen(
@@ -223,8 +239,14 @@ const DrawingViewer = ({
       return;
 
     const rect = markup.markupCanvasRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / viewer.viewerState.zoomLevel / viewer.viewerState.zoomLevel;
-    const y = (e.clientY - rect.top) / viewer.viewerState.zoomLevel / viewer.viewerState.zoomLevel;
+    const x =
+      (e.clientX - rect.left) /
+      viewer.viewerState.zoomLevel /
+      viewer.viewerState.zoomLevel;
+    const y =
+      (e.clientY - rect.top) /
+      viewer.viewerState.zoomLevel /
+      viewer.viewerState.zoomLevel;
 
     if (markup.markupState.markupTool === "line") {
       markup.drawLine(
@@ -434,7 +456,9 @@ const DrawingViewer = ({
             <div
               ref={viewer.canvasRef}
               className="relative flex-1 overflow-hidden cursor-grab active:cursor-grabbing"
-              onPointerDown={(e) => viewer.handlePointerDown(e, markup.markupState.isMarkupMode)}
+              onPointerDown={(e) =>
+                viewer.handlePointerDown(e, markup.markupState.isMarkupMode)
+              }
               onPointerMove={viewer.handlePointerMove}
               onPointerUp={viewer.stopPointerDrag}
               onPointerCancel={viewer.stopPointerDrag}
@@ -459,7 +483,9 @@ const DrawingViewer = ({
                 }}
               >
                 {comparisonDrawings.map((drawing, idx) => {
-                  const isVisible = comparison.getVisibility(drawing.revisionId);
+                  const isVisible = comparison.getVisibility(
+                    drawing.revisionId,
+                  );
                   if (!isVisible) return null;
 
                   return (
@@ -498,7 +524,9 @@ const DrawingViewer = ({
           <div
             ref={viewer.canvasRef}
             className="relative w-full h-full overflow-hidden cursor-grab active:cursor-grabbing"
-            onPointerDown={(e) => viewer.handlePointerDown(e, markup.markupState.isMarkupMode)}
+            onPointerDown={(e) =>
+              viewer.handlePointerDown(e, markup.markupState.isMarkupMode)
+            }
             onPointerMove={viewer.handlePointerMove}
             onPointerUp={viewer.stopPointerDrag}
             onPointerCancel={viewer.stopPointerDrag}
@@ -576,7 +604,9 @@ const DrawingViewer = ({
                   onMouseLeave={handleMarkupMouseUp}
                   title="마크업: 그리기 | Shift+마우스드래그: 도면 이동"
                   style={{
-                    pointerEvents: markup.markupState.isMarkupMode ? "auto" : "none",
+                    pointerEvents: markup.markupState.isMarkupMode
+                      ? "auto"
+                      : "none",
                   }}
                 />
               )}

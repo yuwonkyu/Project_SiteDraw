@@ -45,14 +45,18 @@ export const useDrawingViewer = () => {
       e.currentTarget.setPointerCapture(e.pointerId);
 
       setIsDragging(true);
-      setDragStart({ x: e.clientX - viewerState.pan.x, y: e.clientY - viewerState.pan.y });
+      setDragStart({
+        x: e.clientX - viewerState.pan.x,
+        y: e.clientY - viewerState.pan.y,
+      });
     },
     [viewerState.pan, setIsDragging, setDragStart],
   );
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
-      if (!viewerState.isDragging || activePointerIdRef.current !== e.pointerId) return;
+      if (!viewerState.isDragging || activePointerIdRef.current !== e.pointerId)
+        return;
       e.preventDefault();
       setPan({
         x: e.clientX - viewerState.dragStart.x,

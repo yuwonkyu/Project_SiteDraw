@@ -22,7 +22,8 @@ export const OverlaySummary = ({ visibleOverlays }: OverlaySummaryProps) => {
           </p>
           <div className="flex flex-wrap gap-2">
             {visibleOverlays.map((overlay) => {
-              const color = LAYER_COLORS[overlay.colorIndex % LAYER_COLORS.length];
+              const color =
+                LAYER_COLORS[overlay.colorIndex % LAYER_COLORS.length];
               return (
                 <div
                   key={overlay.nodeId}

@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MarkupTool, MarkupState } from "../types";
 
-export const useMarkup = (zoomLevel: number, baseSize: { width: number; height: number }) => {
+export const useMarkup = (
+  zoomLevel: number,
+  baseSize: { width: number; height: number },
+) => {
   const [markupState, setMarkupState] = useState<MarkupState>({
     isMarkupMode: false,
     markupTool: "pen",
@@ -115,19 +118,22 @@ export const useMarkup = (zoomLevel: number, baseSize: { width: number; height: 
   }, []);
 
   // 펜 드로잉
-  const drawPen = useCallback((startX: number, startY: number, endX: number, endY: number) => {
-    if (!markupCtxRef.current) return;
-    const ctx = markupCtxRef.current;
+  const drawPen = useCallback(
+    (startX: number, startY: number, endX: number, endY: number) => {
+      if (!markupCtxRef.current) return;
+      const ctx = markupCtxRef.current;
 
-    ctx.strokeStyle = markupState.markupColor;
-    ctx.lineWidth = markupState.markupLineWidth * zoomLevel;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.beginPath();
-    ctx.moveTo(startX * zoomLevel, startY * zoomLevel);
-    ctx.lineTo(endX * zoomLevel, endY * zoomLevel);
-    ctx.stroke();
-  }, [markupState.markupColor, markupState.markupLineWidth, zoomLevel]);
+      ctx.strokeStyle = markupState.markupColor;
+      ctx.lineWidth = markupState.markupLineWidth * zoomLevel;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      ctx.moveTo(startX * zoomLevel, startY * zoomLevel);
+      ctx.lineTo(endX * zoomLevel, endY * zoomLevel);
+      ctx.stroke();
+    },
+    [markupState.markupColor, markupState.markupLineWidth, zoomLevel],
+  );
 
   // 지우개
   const eraseArea = useCallback(
@@ -191,13 +197,7 @@ export const useMarkup = (zoomLevel: number, baseSize: { width: number; height: 
           Math.pow(pointX - centerX, 2) + Math.pow(pointY - centerY, 2),
         ) * zoomLevel;
       ctx.beginPath();
-      ctx.arc(
-        centerX * zoomLevel,
-        centerY * zoomLevel,
-        radius,
-        0,
-        2 * Math.PI,
-      );
+      ctx.arc(centerX * zoomLevel, centerY * zoomLevel, radius, 0, 2 * Math.PI);
       ctx.stroke();
     },
     [markupState.markupColor, markupState.markupLineWidth, zoomLevel],
@@ -218,9 +218,8 @@ export const useMarkup = (zoomLevel: number, baseSize: { width: number; height: 
 
   // 되돌리기
   const undo = useCallback(() => {
-    if (!markupCanvasRef.current || !markupCtxRef.current) return;
+    if (!markupCtxRef.current) return;
 
-    const canvas = markupCanvasRef.current;
     const ctx = markupCtxRef.current;
     const previousState = markupHistoryRef.current.pop();
     if (previousState) {
@@ -256,7 +255,11 @@ export const useMarkup = (zoomLevel: number, baseSize: { width: number; height: 
   // Ctrl+Z 단축키
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "z" && markupState.isMarkupMode) {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        e.key === "z" &&
+        markupState.isMarkupMode
+      ) {
         e.preventDefault();
         undo();
       }

@@ -45,7 +45,9 @@ export const useComparisonMode = () => {
       comparisonOpacities: Object.fromEntries(
         revisionIds.map((id) => [id, 0.8]),
       ),
-      comparisonVisibility: Object.fromEntries(revisionIds.map((id) => [id, true])),
+      comparisonVisibility: Object.fromEntries(
+        revisionIds.map((id) => [id, true]),
+      ),
     });
   }, []);
 

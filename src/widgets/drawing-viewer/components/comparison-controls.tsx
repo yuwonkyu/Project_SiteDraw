@@ -26,7 +26,9 @@ export const ComparisonControls = ({
   return (
     <div className="flex flex-wrap gap-2 p-2 bg-white border-b border-black">
       {comparisonDrawings.map((drawing, idx) => {
-        const revEntry = data.revisions.find((r) => r.id === drawing.revisionId);
+        const revEntry = data.revisions.find(
+          (r) => r.id === drawing.revisionId,
+        );
         const revisionName = revEntry
           ? `${revEntry.drawingName} - ${revEntry.revision}`
           : `도면 ${idx + 1}`;
@@ -51,7 +53,9 @@ export const ComparisonControls = ({
               {isVisible && "✓"}
             </button>
 
-            <span className="font-semibold whitespace-nowrap">{revisionName}</span>
+            <span className="font-semibold whitespace-nowrap">
+              {revisionName}
+            </span>
 
             <div className="flex items-center gap-1">
               <span className="text-gray-600">투명도:</span>
@@ -61,7 +65,9 @@ export const ComparisonControls = ({
                 max="1"
                 step="0.05"
                 value={getOpacity(drawing.revisionId)}
-                onChange={(e) => setOpacity(drawing.revisionId, parseFloat(e.target.value))}
+                onChange={(e) =>
+                  setOpacity(drawing.revisionId, parseFloat(e.target.value))
+                }
                 className="w-20 h-1"
                 title="도면 투명도 조절"
               />

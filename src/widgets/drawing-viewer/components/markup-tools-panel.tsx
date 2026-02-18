@@ -29,7 +29,14 @@ export const MarkupToolsPanel = ({
   onClear,
   historyLength,
 }: MarkupToolsPanelProps) => {
-  const tools: MarkupTool[] = ["pen", "eraser", "line", "rect", "circle", "text"];
+  const tools: MarkupTool[] = [
+    "pen",
+    "eraser",
+    "line",
+    "rect",
+    "circle",
+    "text",
+  ];
 
   return (
     <div className="flex flex-wrap items-center gap-3 p-3 bg-gray-50 rounded-md border border-gray-200 flex-none">
