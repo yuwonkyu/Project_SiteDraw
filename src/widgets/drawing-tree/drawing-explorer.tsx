@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
 import { cn } from "@/shared/lib";
 import { SectionTitle } from "@/shared/ui";
 import type {
@@ -33,7 +33,7 @@ const DrawingExplorer = ({ data, selectedIds, onSelect }: DrawingExplorerProps) 
     [data.tree.rootId]: true,
   });
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (selectedIds.size === 0) {
       return;
     }
