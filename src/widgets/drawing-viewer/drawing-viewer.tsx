@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useRef, useCallback } from "react";
+import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import Image from "next/image";
 import { cn } from "@/shared/lib";
 import { SectionTitle } from "@/shared/ui";
@@ -163,12 +163,11 @@ const DrawingViewer = ({
 
   // 줌/패닝 핸들러
   const handleWheel = useCallback((e: React.WheelEvent) => {
-    if (canvasRef.current?.contains(e.target as Node)) {
-      e.preventDefault();
-      e.stopPropagation();
-      const delta = e.deltaY > 0 ? 0.85 : 1.15;
-      setZoomLevel(prev => Math.max(0.1, Math.min(5, prev * delta)));
-    }
+    // onWheel이 canvasRef에 바인드되어 있으므로 currentTarget은 항상 canvas div
+    e.preventDefault();
+    e.stopPropagation();
+    const delta = e.deltaY > 0 ? 0.85 : 1.15;
+    setZoomLevel(prev => Math.max(0.1, Math.min(5, prev * delta)));
   }, []);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -218,6 +217,25 @@ const DrawingViewer = ({
 
   const handleZoomOut = useCallback(() => {
     setZoomLevel(prev => Math.max(0.1, prev / 1.2));
+  }, []);
+
+  // 캔버스에서의 wheel 이벤트 처리 - preventDefault로 페이지 스크롤 차단
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const handleWheelEvent = (e: WheelEvent) => {
+      if (canvas.contains(e.target as Node)) {
+        e.preventDefault();
+      }
+    };
+
+    // capture phase에서 처리하여 더 확실하게 차단
+    canvas.addEventListener("wheel", handleWheelEvent, { passive: false, capture: true });
+
+    return () => {
+      canvas.removeEventListener("wheel", handleWheelEvent, { capture: true } as any);
+    };
   }, []);
 
   return (
