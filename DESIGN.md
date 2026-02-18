@@ -430,6 +430,7 @@ className={`cursor-pointer rounded-md border px-3 py-2 text-xs transition-colors
 #### 문제: Port 3000이 이미 사용 중
 
 **증상**:
+
 ```
 Error: bind EADDRINUSE: address already in use :::3000
 ```
@@ -447,6 +448,7 @@ pkill -f "node"
 ```
 
 또는 포트 변경:
+
 ```bash
 npm run dev -- -p 3001
 ```
@@ -456,6 +458,7 @@ npm run dev -- -p 3001
 #### 문제: `.next` 폴더 락 파일
 
 **증상**:
+
 ```
 ⨯ Unable to acquire lock at C:\...\Project_SiteDraw\.next\dev\lock
 ```
@@ -479,6 +482,7 @@ npm run dev
 #### 문제: 'useState' is not defined
 
 **증상**:
+
 ```
 'useState' 이름을 찾을 수 없습니다.
 ```
@@ -486,6 +490,7 @@ npm run dev
 **원인**: React 임포트 누락
 
 **해결 방법**:
+
 ```typescript
 // ❌ 잘못된 방법
 const [count, setCount] = useState(0);
@@ -500,6 +505,7 @@ const [count, setCount] = useState(0);
 #### 문제: 타입 충돌 (로컬 선언과 import 충돌)
 
 **증상**:
+
 ```
 가져오기 선언이 'OverlayInfo'의 로컬 선언과 충돌합니다.
 ```
@@ -507,6 +513,7 @@ const [count, setCount] = useState(0);
 **원인**: 같은 이름의 타입이 중복 정의됨
 
 **해결 방법**:
+
 ```typescript
 // ❌ 충돌 발생
 import type { OverlayInfo } from "./types";
@@ -523,6 +530,7 @@ import type { OverlayInfo as OverlayType } from "./types";
 #### 문제: Unused Variables Warning
 
 **증상**:
+
 ```
 'canvas' is assigned a value but never used.
 ```
@@ -543,6 +551,7 @@ const ctx = markupCtxRef.current;
 ```
 
 또는 의도적으로 무시:
+
 ```typescript
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const canvas = markupCanvasRef.current;
@@ -553,6 +562,7 @@ const canvas = markupCanvasRef.current;
 #### 문제: React Hook Dependencies Warning
 
 **증상**:
+
 ```
 The dependency list of useCallback should be: [...]
 React Hook useEffect has an unnecessary dependency: 'data.tree.nodes'
@@ -583,6 +593,7 @@ useCallback(() => {
 **증상**: 도면을 확대/축소한 후 마크업을 그리면 그린 위치와 다른 곳에 표시됨
 
 **원인**: `getBoundingClientRect()`와 Canvas 좌표계의 불일치
+
 - Canvas: 물리 픽셀 기반
 - CSS Transform: 논리 좌표 기반
 - 줌 레벨과 팬 값이 함께 작용하면서 복잡도 증가
@@ -625,15 +636,17 @@ console.timeEnd("draw");
 **최적화 전략**:
 
 1. **이미지 최적화**
+
    ```typescript
    // SVG 오버레이 최소화
    // 필요한 오버레이만 렌더링
-   const visibleOverlays = overlays.filter(overlay => 
-     visibleIds.has(overlay.nodeId)
+   const visibleOverlays = overlays.filter((overlay) =>
+     visibleIds.has(overlay.nodeId),
    );
    ```
 
 2. **메모이제이션**
+
    ```typescript
    const memoizedValue = useMemo(() => {
      return 복잡한_계산();
@@ -648,6 +661,7 @@ console.timeEnd("draw");
 ### 6. 브라우저 호환성
 
 #### 지원 브라우저:
+
 - Chrome 90+
 - Firefox 88+
 - Safari 14+
@@ -656,6 +670,7 @@ console.timeEnd("draw");
 #### 문제: CSS Grid 지원 부족
 
 호환성 확인:
+
 - `caniuse.com`에서 CSS Grid 검색
 - 대부분의 최신 브라우저에서 지원
 
@@ -666,11 +681,13 @@ console.timeEnd("draw");
 #### 문제: 도면 이미지 로드 실패
 
 **증상**:
+
 ```
 Failed to load image from /drawings/...
 ```
 
 **원인 분석**:
+
 1. 파일 경로 오류
 2. public 폴더에 파일 없음
 3. URL 인코딩 문제
@@ -717,6 +734,7 @@ const handleSelect = (e: React.MouseEvent<HTMLButtonElement>) => {
 #### 문제: Production 빌드 실패
 
 **증상**:
+
 ```
 npm run build → Error
 ```
@@ -740,6 +758,7 @@ npm run build
 #### 문제: Image 컴포넌트 src 에러
 
 **증상**:
+
 ```
 Image with src "..." is missing required "width" and "height" props
 ```
@@ -753,9 +772,9 @@ Image with src "..." is missing required "width" and "height" props
 <Image src={url} alt="description" />
 
 // ✅ 올바른 방법
-<Image 
-  src={url} 
-  alt="description" 
+<Image
+  src={url}
+  alt="description"
   width={1600}
   height={1000}
   unoptimized  // 동적 크기인 경우
@@ -767,10 +786,12 @@ Image with src "..." is missing required "width" and "height" props
 ### 11. 디버깅 팁
 
 #### React DevTools 설치
+
 - Chrome/Firefox DevTools에서 컴포넌트 상태 확인
 - Props와 Hooks 실시간 모니터링
 
 #### 콘솔 로깅 (Console Logging)
+
 ```typescript
 // useEffect에서 의존성 변경 감지
 useEffect(() => {
@@ -779,13 +800,15 @@ useEffect(() => {
 ```
 
 #### 로컬 스토리지 확인
+
 ```typescript
 // 개발자 도구 Console에서 실행
-localStorage.getItem("key")
-sessionStorage.getItem("key")
+localStorage.getItem("key");
+sessionStorage.getItem("key");
 ```
 
 #### 네트워크 탭 확인
+
 - DevTools → Network 탭
 - 이미지 로드 여부, 응답 시간 확인
 
