@@ -28,7 +28,11 @@ type DrawingExplorerProps = {
   onSelect: (id: string, ctrlKey: boolean) => void;
 };
 
-const DrawingExplorer = ({ data, selectedIds, onSelect }: DrawingExplorerProps) => {
+const DrawingExplorer = ({
+  data,
+  selectedIds,
+  onSelect,
+}: DrawingExplorerProps) => {
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({
     [data.tree.rootId]: true,
   });
@@ -57,7 +61,7 @@ const DrawingExplorer = ({ data, selectedIds, onSelect }: DrawingExplorerProps) 
     // 필요한 변경이 있을 때만 업데이트
     setExpandedIds((prev) => {
       const hasChanges = Object.keys(nextExpanded).some(
-        (key) => prev[key] !== nextExpanded[key]
+        (key) => prev[key] !== nextExpanded[key],
       );
       return hasChanges ? { ...prev, ...nextExpanded } : prev;
     });
@@ -96,7 +100,12 @@ const DrawingExplorer = ({ data, selectedIds, onSelect }: DrawingExplorerProps) 
     const isExpanded = expandedIds[node.id] ?? false;
 
     const handleSelect = (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.stopPropagation();
       onSelect(node.id, e.ctrlKey || e.metaKey);
+    };
+
+    const handleToggleExpand = (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.stopPropagation();
       if (!hasChildren) {
         return;
       }
@@ -111,41 +120,51 @@ const DrawingExplorer = ({ data, selectedIds, onSelect }: DrawingExplorerProps) 
         <div
           className={cn(
             "rounded-md",
-            depth > 0 ? "border-l border-black/20 pl-3" : ""
+            depth > 0 ? "border-l border-black/20 pl-3" : "",
           )}
           style={{ marginLeft: depth > 0 ? depth * 10 : 0 }}
         >
-          <button
-            className={cn(
-              "flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition",
-              isSelected
-                ? "bg-gray-700 text-white"
-                : "text-black hover:bg-gray-100"
-            )}
-            type="button"
-            onClick={handleSelect}
-            title="Ctrl+Click for multi-select / Click to select"
-          >
-            <span
+          <div className="flex w-full items-center gap-1">
+            <button
               className={cn(
-                "flex h-5 w-5 items-center justify-center rounded border text-[10px]",
+                "flex h-5 w-5 items-center justify-center rounded border text-[10px] font-bold hover:bg-gray-200 transition shrink-0",
                 "border-black",
                 isSelected ? "bg-white text-black" : "bg-white",
-                hasChildren ? "" : "opacity-40"
+                hasChildren ? "cursor-pointer" : "opacity-40 cursor-default",
               )}
+              type="button"
+              onClick={handleToggleExpand}
+              disabled={!hasChildren}
+              title={
+                hasChildren ? (isExpanded ? "접기" : "펼치기") : "자식 없음"
+              }
             >
               {hasChildren ? (isExpanded ? "-" : "+") : ""}
-            </span>
-            <span
+            </button>
+            <button
               className={cn(
-                "min-w-14 rounded-full border border-black px-2 py-0.5 text-[10px] font-semibold uppercase",
-                isSelected ? "border-white text-white" : "text-black"
+                "flex min-w-0 flex-1 items-center gap-2 overflow-hidden rounded-md px-2 py-2 text-left text-sm transition",
+                isSelected
+                  ? "bg-gray-700 text-white"
+                  : "text-black hover:bg-gray-100",
               )}
+              type="button"
+              onClick={handleSelect}
+              title={`${node.name} (Ctrl+Click: multi-select)`}
             >
-              {kindLabel[node.kind]}
-            </span>
-            <span className="truncate">{node.name}</span>
-          </button>
+              <span
+                className={cn(
+                  "min-w-14 shrink-0 rounded-full border border-black px-2 py-0.5 text-[10px] font-semibold uppercase",
+                  isSelected ? "border-white text-white" : "text-black",
+                )}
+              >
+                {kindLabel[node.kind]}
+              </span>
+              <span className="truncate" title={node.name}>
+                {node.name}
+              </span>
+            </button>
+          </div>
         </div>
         {hasChildren && isExpanded && (
           <div className="space-y-1">

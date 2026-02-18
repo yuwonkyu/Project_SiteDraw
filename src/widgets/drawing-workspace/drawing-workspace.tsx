@@ -14,16 +14,14 @@ type DrawingWorkspaceProps = {
 
 const DrawingWorkspace = ({ metadata }: DrawingWorkspaceProps) => {
   const parsed = useMemo(() => parseDrawingMetadata(metadata), [metadata]);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(
-    new Set([parsed.tree.rootId])
-  );
-  const [visibleIds, setVisibleIds] = useState<Set<string>>(
-    new Set([parsed.tree.rootId])
-  );
+
+  // 초기 선택값: 빈 상태로 시작 (사용자가 트리에서 도면을 선택할 때까지)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [visibleIds, setVisibleIds] = useState<Set<string>>(new Set());
   const [selectedRevisionId, setSelectedRevisionId] = useState<string>("");
   const [isComparisonMode, setIsComparisonMode] = useState(false);
   const [comparisonRevisions, setComparisonRevisions] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
 
   const handleSelect = useCallback((id: string, ctrlKey: boolean) => {
@@ -88,9 +86,9 @@ const DrawingWorkspace = ({ metadata }: DrawingWorkspaceProps) => {
 
   return (
     <div className="grid gap-4">
-      <CurrentContext 
-        data={parsed} 
-        selectedIds={selectedIds} 
+      <CurrentContext
+        data={parsed}
+        selectedIds={selectedIds}
         visibleIds={visibleIds}
         selectedRevisionId={selectedRevisionId}
         isComparisonMode={isComparisonMode}
@@ -101,12 +99,7 @@ const DrawingWorkspace = ({ metadata }: DrawingWorkspaceProps) => {
       />
       <DrawingFilter
         data={parsed}
-        onSearch={(filteredIds: Set<string>) => {
-          // 필터 결과로 자동 선택
-          if (filteredIds.size > 0) {
-            setSelectedIds(new Set(Array.from(filteredIds).slice(0, 1)));
-          }
-        }}
+        onSelect={(id, add) => handleSelect(id, add)}
       />
       <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
         <DrawingExplorer

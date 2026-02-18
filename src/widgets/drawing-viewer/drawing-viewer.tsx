@@ -42,33 +42,49 @@ type DrawingViewerProps = {
   onToggleComparison?: () => void;
 };
 
-const DrawingViewer = ({ 
-  data, 
-  selectedIds, 
+const DrawingViewer = ({
+  data,
+  selectedIds,
   visibleIds,
   isComparisonMode = false,
   comparisonRevisions = new Set(),
   onSelect,
-  onToggleComparison
+  onToggleComparison,
 }: DrawingViewerProps) => {
   const [baseSize, setBaseSize] = useState({ width: 1600, height: 1000 });
   const [zoomLevel, setZoomLevel] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const activePointerIdRef = useRef<number | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
-  
+
   // 비교 모드용 독립적인 줌/팬 상태
-  const [comparisonZoomLevels, setComparisonZoomLevels] = useState<Record<string, number>>({});
-  const [comparisonPans, setComparisonPans] = useState<Record<string, { x: number; y: number }>>({});
-  const [comparisonDraggingState, setComparisonDraggingState] = useState<Record<string, boolean>>({});
-  const [comparisonDragStart, setComparisonDragStart] = useState<Record<string, { x: number; y: number }>>({});
-  const [comparisonOpacities, setComparisonOpacities] = useState<Record<string, number>>({});
+  const [comparisonZoomLevels, setComparisonZoomLevels] = useState<
+    Record<string, number>
+  >({});
+  const [comparisonPans, setComparisonPans] = useState<
+    Record<string, { x: number; y: number }>
+  >({});
+  const [comparisonSizes, setComparisonSizes] = useState<
+    Record<string, { width: number; height: number }>
+  >({});
+  const [comparisonDraggingState, setComparisonDraggingState] = useState<
+    Record<string, boolean>
+  >({});
+  const [comparisonDragStart, setComparisonDragStart] = useState<
+    Record<string, { x: number; y: number }>
+  >({});
+  const [comparisonOpacities, setComparisonOpacities] = useState<
+    Record<string, number>
+  >({});
   const canvasRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // 마크업 도구 상태
   const [isMarkupMode, setIsMarkupMode] = useState(false);
-  const [markupTool, setMarkupTool] = useState<"pen" | "eraser" | "line" | "rect" | "circle" | "text">("pen");
+  const [markupTool, setMarkupTool] = useState<
+    "pen" | "eraser" | "line" | "rect" | "circle" | "text"
+  >("pen");
   const [markupColor, setMarkupColor] = useState("#ff0000");
   const [markupLineWidth, setMarkupLineWidth] = useState(2);
   const [isMarkupDrawing, setIsMarkupDrawing] = useState(false);
@@ -97,7 +113,8 @@ const DrawingViewer = ({
     } else if (primary?.kind === "region") {
       const parentDiscipline = data.tree.nodes[primary.parentId ?? ""];
       if (parentDiscipline?.kind === "discipline") {
-        image = parentDiscipline.imageTransform?.relativeTo ?? parentDiscipline.image;
+        image =
+          parentDiscipline.imageTransform?.relativeTo ?? parentDiscipline.image;
         drawingNode = data.tree.nodes[`drawing:${parentDiscipline.drawingId}`];
       }
     } else if (primary?.kind === "revision") {
@@ -152,11 +169,13 @@ const DrawingViewer = ({
         return;
       }
 
-      const disciplineNode = node.kind === "region"
-        ? data.tree.nodes[node.parentId ?? ""]
-        : node;
+      const disciplineNode =
+        node.kind === "region" ? data.tree.nodes[node.parentId ?? ""] : node;
 
-      if (disciplineNode?.kind === "discipline" && !disciplineSet.has(disciplineNode.id)) {
+      if (
+        disciplineNode?.kind === "discipline" &&
+        !disciplineSet.has(disciplineNode.id)
+      ) {
         disciplineSet.add(disciplineNode.id);
         items.push({
           nodeId: disciplineNode.id,
@@ -172,7 +191,7 @@ const DrawingViewer = ({
 
   // visibleIds로 필터링
   const visibleOverlays = overlays.filter((overlay) =>
-    visibleIds.has(overlay.nodeId)
+    visibleIds.has(overlay.nodeId),
   );
 
   // Region 영역 처리
@@ -184,8 +203,8 @@ const DrawingViewer = ({
     primaryNode?.kind === "discipline"
       ? primaryNode
       : parentNode && parentNode.kind === "discipline"
-      ? parentNode
-      : undefined;
+        ? parentNode
+        : undefined;
 
   const regionNodes = disciplineNode
     ? disciplineNode.children
@@ -196,49 +215,46 @@ const DrawingViewer = ({
   const hasRegions = regionNodes.length > 0;
 
   // 줌/패닝 핸들러
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    // onWheel이 canvasRef에 바인드되어 있으므로 currentTarget은 항상 canvas div
-    e.preventDefault();
-    e.stopPropagation();
-    const delta = e.deltaY > 0 ? 0.85 : 1.15;
-    setZoomLevel(prev => Math.max(0.1, Math.min(5, prev * delta)));
-  }, []);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    // 좌클릭 또는 중간 마우스 버튼으로 드래그 시작 (줌인 상태에서 좌클릭 허용)
-    if (e.button === 0 || e.button === 1) {
-      if (e.button === 0 && e.ctrlKey) {
-        // Ctrl+좌클릭: 항상 드래그
-        setIsDragging(true);
-        setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
-      } else if (e.button === 0 && zoomLevel > 1) {
-        // 좌클릭 + 줌인 상태: 드래그 활성화
-        setIsDragging(true);
-        setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
-      } else if (e.button === 1) {
-        // 중간 마우스: 항상 드래그
-        setIsDragging(true);
-        setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
-      }
-    }
-  }, [pan, zoomLevel]);
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (e.button !== 0) return;
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (isDragging) {
+      e.preventDefault();
+      activePointerIdRef.current = e.pointerId;
+      e.currentTarget.setPointerCapture(e.pointerId);
+
+      setIsDragging(true);
+      setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+    },
+    [pan],
+  );
+
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!isDragging || activePointerIdRef.current !== e.pointerId) return;
       e.preventDefault();
       setPan({
         x: e.clientX - dragStart.x,
-        y: e.clientY - dragStart.y
+        y: e.clientY - dragStart.y,
       });
-    }
-  }, [isDragging, dragStart]);
+    },
+    [isDragging, dragStart],
+  );
 
-  const handleMouseUp = useCallback((e: React.MouseEvent) => {
-    if (isDragging) {
-      e.preventDefault();
-    }
-    setIsDragging(false);
-  }, [isDragging]);
+  const stopPointerDrag = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (activePointerIdRef.current === e.pointerId) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+        activePointerIdRef.current = null;
+      }
+      if (isDragging) {
+        e.preventDefault();
+      }
+      setIsDragging(false);
+    },
+    [isDragging],
+  );
 
   const resetZoomAndPan = useCallback(() => {
     setZoomLevel(1);
@@ -246,11 +262,11 @@ const DrawingViewer = ({
   }, []);
 
   const handleZoomIn = useCallback(() => {
-    setZoomLevel(prev => Math.min(5, prev * 1.2));
+    setZoomLevel((prev) => Math.min(5, prev * 1.2));
   }, []);
 
   const handleZoomOut = useCallback(() => {
-    setZoomLevel(prev => Math.max(0.1, prev / 1.2));
+    setZoomLevel((prev) => Math.max(0.1, prev / 1.2));
   }, []);
 
   // 더블클릭 시 fit-to-screen
@@ -259,51 +275,127 @@ const DrawingViewer = ({
     const container = canvasRef.current;
     const containerWidth = container.clientWidth;
     const containerHeight = container.clientHeight;
-    
+
     // 이미지를 컨테이너에 fit시킬 zoom 레벨 계산
     const zoomX = containerWidth / baseSize.width;
     const zoomY = containerHeight / baseSize.height;
     const fitZoom = Math.min(zoomX, zoomY, 1); // 최대 1.0 (원본 크기 이상 확대 안 함)
-    
+
     setZoomLevel(fitZoom);
     setPan({ x: 0, y: 0 });
   }, [baseSize.width, baseSize.height]);
 
   // 비교 모드용 줌/팬 제어
-  const getComparisonZoom = (revisionId: string) => comparisonZoomLevels[revisionId] ?? 1;
-  const getComparisonPan = (revisionId: string) => comparisonPans[revisionId] ?? { x: 0, y: 0 };
-  const getComparisonDragging = (revisionId: string) => comparisonDraggingState[revisionId] ?? false;
+  const getComparisonZoom = (revisionId: string) =>
+    comparisonZoomLevels[revisionId] ?? 1;
+  const getComparisonPan = (revisionId: string) =>
+    comparisonPans[revisionId] ?? { x: 0, y: 0 };
+  const getComparisonDragging = (revisionId: string) =>
+    comparisonDraggingState[revisionId] ?? false;
 
   const setComparisonZoom = (revisionId: string, zoom: number) => {
-    setComparisonZoomLevels(prev => ({ ...prev, [revisionId]: zoom }));
+    setComparisonZoomLevels((prev) => ({ ...prev, [revisionId]: zoom }));
   };
 
-  const setComparisonPan = (revisionId: string, pan: { x: number; y: number }) => {
-    setComparisonPans(prev => ({ ...prev, [revisionId]: pan }));
+  const setComparisonPan = (
+    revisionId: string,
+    pan: { x: number; y: number },
+  ) => {
+    setComparisonPans((prev) => ({ ...prev, [revisionId]: pan }));
+  };
+
+  const setComparisonSize = (
+    revisionId: string,
+    size: { width: number; height: number },
+  ) => {
+    setComparisonSizes((prev) => {
+      const current = prev[revisionId];
+      if (
+        current &&
+        current.width === size.width &&
+        current.height === size.height
+      ) {
+        return prev;
+      }
+      return { ...prev, [revisionId]: size };
+    });
   };
 
   const setComparisonDragging = (revisionId: string, isDragging: boolean) => {
-    setComparisonDraggingState(prev => ({ ...prev, [revisionId]: isDragging }));
+    setComparisonDraggingState((prev) => ({
+      ...prev,
+      [revisionId]: isDragging,
+    }));
   };
 
-  const getComparisonOpacity = (revisionId: string) => comparisonOpacities[revisionId] ?? 1;
+  const getComparisonOpacity = (revisionId: string) =>
+    comparisonOpacities[revisionId] ?? 1;
 
   const setComparisonOpacity = (revisionId: string, opacity: number) => {
-    setComparisonOpacities(prev => ({ ...prev, [revisionId]: Math.max(0, Math.min(1, opacity)) }));
+    setComparisonOpacities((prev) => ({
+      ...prev,
+      [revisionId]: Math.max(0, Math.min(1, opacity)),
+    }));
   };
 
   const handleComparisonZoomIn = (revisionId: string) => {
-    setComparisonZoom(revisionId, Math.min(5, getComparisonZoom(revisionId) * 1.2));
+    setComparisonZoom(
+      revisionId,
+      Math.min(5, getComparisonZoom(revisionId) * 1.2),
+    );
   };
 
   const handleComparisonZoomOut = (revisionId: string) => {
-    setComparisonZoom(revisionId, Math.max(0.1, getComparisonZoom(revisionId) / 1.2));
+    setComparisonZoom(
+      revisionId,
+      Math.max(0.1, getComparisonZoom(revisionId) / 1.2),
+    );
   };
 
   const resetComparisonZoomAndPan = (revisionId: string) => {
-    setComparisonZoom(revisionId, 1);
+    const canvas = canvasRefs.current[revisionId];
+    const size = comparisonSizes[revisionId];
+    if (!canvas || !size) {
+      setComparisonZoom(revisionId, 1);
+      setComparisonPan(revisionId, { x: 0, y: 0 });
+      return;
+    }
+
+    const zoomX = canvas.clientWidth / size.width;
+    const zoomY = canvas.clientHeight / size.height;
+    const fitZoom = Math.min(zoomX, zoomY, 1);
+    setComparisonZoom(revisionId, fitZoom);
     setComparisonPan(revisionId, { x: 0, y: 0 });
   };
+
+  useEffect(() => {
+    if (!isComparisonMode) return;
+
+    comparisonDrawings.forEach(({ revisionId }) => {
+      const canvas = canvasRefs.current[revisionId];
+      const size = comparisonSizes[revisionId];
+      if (!canvas || !size) return;
+
+      const zoomX = canvas.clientWidth / size.width;
+      const zoomY = canvas.clientHeight / size.height;
+      const fitZoom = Math.min(zoomX, zoomY, 1);
+
+      setComparisonZoomLevels((prev) => {
+        if (prev[revisionId] === fitZoom) {
+          return prev;
+        }
+        return { ...prev, [revisionId]: fitZoom };
+      });
+
+      setComparisonPans((prev) => {
+        const current = prev[revisionId];
+        if (!current || (current.x === 0 && current.y === 0)) {
+          return prev;
+        }
+        return { ...prev, [revisionId]: { x: 0, y: 0 } };
+      });
+    });
+  }, [comparisonDrawings, comparisonSizes, isComparisonMode]);
 
   // 마크업 Canvas 초기화
   const initializeMarkupCanvas = useCallback(() => {
@@ -319,91 +411,137 @@ const DrawingViewer = ({
   }, [baseSize.width, baseSize.height, zoomLevel]);
 
   // 마크업 드로잉 시작
-  const handleMarkupMouseDown = useCallback((e: React.MouseEvent) => {
-    if (!isMarkupMode || !markupCanvasRef.current || !markupCtxRef.current) return;
-    
-    const canvas = markupCanvasRef.current;
-    const ctx = markupCtxRef.current;
-    
-    // 현재 상태를 히스토리에 저장
-    markupHistoryRef.current.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
-    // 히스토리 크기 제한 (최대 20개)
-    if (markupHistoryRef.current.length > 20) {
-      markupHistoryRef.current.shift();
-    }
-    
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    setMarkupDrawStart({ x, y });
-    setIsMarkupDrawing(true);
-  }, [isMarkupMode]);
+  const handleMarkupMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (!isMarkupMode || !markupCanvasRef.current || !markupCtxRef.current)
+        return;
+
+      const canvas = markupCanvasRef.current;
+      const ctx = markupCtxRef.current;
+
+      // 현재 상태를 히스토리에 저장
+      markupHistoryRef.current.push(
+        ctx.getImageData(0, 0, canvas.width, canvas.height),
+      );
+      // 히스토리 크기 제한 (최대 20개)
+      if (markupHistoryRef.current.length > 20) {
+        markupHistoryRef.current.shift();
+      }
+
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      setMarkupDrawStart({ x, y });
+      setIsMarkupDrawing(true);
+    },
+    [isMarkupMode],
+  );
 
   // 마크업 드로잉 진행
-  const handleMarkupMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isMarkupMode || !isMarkupDrawing || !markupCanvasRef.current || !markupCtxRef.current) return;
-    
-    const canvas = markupCanvasRef.current;
-    const ctx = markupCtxRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+  const handleMarkupMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      if (
+        !isMarkupMode ||
+        !isMarkupDrawing ||
+        !markupCanvasRef.current ||
+        !markupCtxRef.current
+      )
+        return;
 
-    if (markupTool === "pen") {
-      ctx.strokeStyle = markupColor;
-      ctx.lineWidth = markupLineWidth;
-      ctx.beginPath();
-      ctx.moveTo(markupDrawStart.x, markupDrawStart.y);
-      ctx.lineTo(x, y);
-      ctx.stroke();
-      setMarkupDrawStart({ x, y });
-    } else if (markupTool === "eraser") {
-      ctx.clearRect(x - markupLineWidth * 2, y - markupLineWidth * 2, markupLineWidth * 4, markupLineWidth * 4);
-    }
-  }, [isMarkupMode, isMarkupDrawing, markupTool, markupColor, markupLineWidth, markupDrawStart]);
+      const canvas = markupCanvasRef.current;
+      const ctx = markupCtxRef.current;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      if (markupTool === "pen") {
+        ctx.strokeStyle = markupColor;
+        ctx.lineWidth = markupLineWidth;
+        ctx.beginPath();
+        ctx.moveTo(markupDrawStart.x, markupDrawStart.y);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        setMarkupDrawStart({ x, y });
+      } else if (markupTool === "eraser") {
+        ctx.clearRect(
+          x - markupLineWidth * 2,
+          y - markupLineWidth * 2,
+          markupLineWidth * 4,
+          markupLineWidth * 4,
+        );
+      }
+    },
+    [
+      isMarkupMode,
+      isMarkupDrawing,
+      markupTool,
+      markupColor,
+      markupLineWidth,
+      markupDrawStart,
+    ],
+  );
 
   // 마크업 드로잉 종료
-  const handleMarkupMouseUp = useCallback((e: React.MouseEvent) => {
-    if (!isMarkupMode || !isMarkupDrawing || !markupCanvasRef.current || !markupCtxRef.current) return;
-    
-    const canvas = markupCanvasRef.current;
-    const ctx = markupCtxRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+  const handleMarkupMouseUp = useCallback(
+    (e: React.MouseEvent) => {
+      if (
+        !isMarkupMode ||
+        !isMarkupDrawing ||
+        !markupCanvasRef.current ||
+        !markupCtxRef.current
+      )
+        return;
 
-    if (markupTool === "line") {
-      ctx.strokeStyle = markupColor;
-      ctx.lineWidth = markupLineWidth;
-      ctx.beginPath();
-      ctx.moveTo(markupDrawStart.x, markupDrawStart.y);
-      ctx.lineTo(x, y);
-      ctx.stroke();
-    } else if (markupTool === "rect") {
-      ctx.strokeStyle = markupColor;
-      ctx.lineWidth = markupLineWidth;
-      const width = x - markupDrawStart.x;
-      const height = y - markupDrawStart.y;
-      ctx.strokeRect(markupDrawStart.x, markupDrawStart.y, width, height);
-    } else if (markupTool === "circle") {
-      ctx.strokeStyle = markupColor;
-      ctx.lineWidth = markupLineWidth;
-      const radius = Math.sqrt(Math.pow(x - markupDrawStart.x, 2) + Math.pow(y - markupDrawStart.y, 2));
-      ctx.beginPath();
-      ctx.arc(markupDrawStart.x, markupDrawStart.y, radius, 0, 2 * Math.PI);
-      ctx.stroke();
-    } else if (markupTool === "text") {
-      const text = prompt("텍스트를 입력하세요:");
-      if (text) {
-        ctx.fillStyle = markupColor;
-        ctx.font = `${Math.max(12, markupLineWidth * 6)}px Arial`;
-        ctx.fillText(text, markupDrawStart.x, markupDrawStart.y);
+      const canvas = markupCanvasRef.current;
+      const ctx = markupCtxRef.current;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      if (markupTool === "line") {
+        ctx.strokeStyle = markupColor;
+        ctx.lineWidth = markupLineWidth;
+        ctx.beginPath();
+        ctx.moveTo(markupDrawStart.x, markupDrawStart.y);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+      } else if (markupTool === "rect") {
+        ctx.strokeStyle = markupColor;
+        ctx.lineWidth = markupLineWidth;
+        const width = x - markupDrawStart.x;
+        const height = y - markupDrawStart.y;
+        ctx.strokeRect(markupDrawStart.x, markupDrawStart.y, width, height);
+      } else if (markupTool === "circle") {
+        ctx.strokeStyle = markupColor;
+        ctx.lineWidth = markupLineWidth;
+        const radius = Math.sqrt(
+          Math.pow(x - markupDrawStart.x, 2) +
+            Math.pow(y - markupDrawStart.y, 2),
+        );
+        ctx.beginPath();
+        ctx.arc(markupDrawStart.x, markupDrawStart.y, radius, 0, 2 * Math.PI);
+        ctx.stroke();
+      } else if (markupTool === "text") {
+        const text = prompt("텍스트를 입력하세요:");
+        if (text) {
+          ctx.fillStyle = markupColor;
+          ctx.font = `${Math.max(12, markupLineWidth * 6)}px Arial`;
+          ctx.fillText(text, markupDrawStart.x, markupDrawStart.y);
+        }
       }
-    }
 
-    setIsMarkupDrawing(false);
-  }, [isMarkupMode, isMarkupDrawing, markupTool, markupColor, markupLineWidth, markupDrawStart]);
+      setIsMarkupDrawing(false);
+    },
+    [
+      isMarkupMode,
+      isMarkupDrawing,
+      markupTool,
+      markupColor,
+      markupLineWidth,
+      markupDrawStart,
+    ],
+  );
 
   // 마크업 초기화
   const clearMarkup = useCallback(() => {
@@ -420,7 +558,7 @@ const DrawingViewer = ({
     const canvas = markupCanvasRef.current;
     const ctx = markupCtxRef.current;
     if (!canvas || !ctx || markupHistoryRef.current.length === 0) return;
-    
+
     const previousState = markupHistoryRef.current.pop();
     if (previousState) {
       ctx.putImageData(previousState, 0, 0);
@@ -447,24 +585,70 @@ const DrawingViewer = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isMarkupMode, undoMarkup]);
 
-  // 캔버스에서의 wheel 이벤트 처리 - preventDefault로 페이지 스크롤 차단
+  // 🚨 강력한 Wheel 이벤트 차단 (페이지 스크롤 방지)
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const handleWindowWheel = (e: Event) => {
+      const wheelEvent = e as WheelEvent;
+      const canvas = canvasRef.current;
+      const comparisonCanvases = Object.values(canvasRefs.current);
 
-    const handleWheelEvent = (e: WheelEvent) => {
-      if (canvas.contains(e.target as Node)) {
-        e.preventDefault();
+      // 캔버스 또는 비교 캔버스 위에 있으면 무조건 차단
+      const isOnCanvas =
+        (canvas && canvas.contains(wheelEvent.target as Node)) ||
+        comparisonCanvases.some(
+          (c) => c && c.contains(wheelEvent.target as Node),
+        );
+
+      if (isOnCanvas) {
+        // 이벤트 전파 완전 차단
+        wheelEvent.preventDefault();
+        wheelEvent.stopPropagation();
+        wheelEvent.stopImmediatePropagation();
       }
     };
 
-    // capture phase에서 처리하여 더 확실하게 차단
-    canvas.addEventListener("wheel", handleWheelEvent, { passive: false, capture: true });
+    // bubble phase에서 처리 (capture: false)하여 canvas 캡처가 먼저 실행되도록
+    document.addEventListener("wheel", handleWindowWheel, {
+      passive: false,
+      capture: false,
+    });
+
+    return () => {
+      document.removeEventListener("wheel", handleWindowWheel, {
+        capture: false,
+      });
+    };
+  }, []);
+
+  // 캔버스에서의 wheel 이벤트 처리 - 페이지 스크롤 완벽 차단
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !baseImage || isComparisonMode) return;
+
+    const handleWheelEvent = (e: WheelEvent) => {
+      // ⚠️ 캔버스 위에서는 모든 wheel 이벤트를 차단
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+
+      // 직접 줌 처리
+      const delta = e.deltaY > 0 ? 0.85 : 1.15;
+      setZoomLevel((prev) => {
+        const newZoom = Math.max(0.1, Math.min(5, prev * delta));
+        return newZoom;
+      });
+    };
+
+    // capture phase에서 처리하여 가장 먼저 처리
+    canvas.addEventListener("wheel", handleWheelEvent, {
+      passive: false,
+      capture: true,
+    });
 
     return () => {
       canvas.removeEventListener("wheel", handleWheelEvent, { capture: true });
     };
-  }, []);
+  }, [baseImage, isComparisonMode]);
 
   // 비교 모드 캔버스의 wheel 이벤트 처리
   useEffect(() => {
@@ -472,27 +656,48 @@ const DrawingViewer = ({
       const canvas = canvasRefs.current[revisionId];
       if (canvas && canvas.contains(e.target as Node)) {
         e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+
         const delta = e.deltaY > 0 ? 0.85 : 1.15;
-        setComparisonZoom(revisionId, Math.max(0.1, Math.min(5, (comparisonZoomLevels[revisionId] ?? 1) * delta)));
+        setComparisonZoom(
+          revisionId,
+          Math.max(
+            0.1,
+            Math.min(5, (comparisonZoomLevels[revisionId] ?? 1) * delta),
+          ),
+        );
       }
     };
 
     const revisionIds = Array.from(comparisonRevisions);
-    const listeners = revisionIds.map(revId => ({
+    // 현재 refs 스냅샷 저장
+    const currentRefs = revisionIds.reduce(
+      (acc, revId) => {
+        acc[revId] = canvasRefs.current[revId];
+        return acc;
+      },
+      {} as Record<string, HTMLDivElement | null>,
+    );
+
+    const listeners = revisionIds.map((revId) => ({
       revId,
-      handler: handleWheelEvent(revId)
+      handler: handleWheelEvent(revId),
     }));
 
     listeners.forEach(({ revId, handler }) => {
-      const canvas = canvasRefs.current[revId];
+      const canvas = currentRefs[revId];
       if (canvas) {
-        canvas.addEventListener("wheel", handler, { passive: false, capture: true });
+        canvas.addEventListener("wheel", handler, {
+          passive: false,
+          capture: true,
+        });
       }
     });
 
     return () => {
       listeners.forEach(({ revId, handler }) => {
-        const canvas = canvasRefs.current[revId];
+        const canvas = currentRefs[revId];
         if (canvas) {
           canvas.removeEventListener("wheel", handler, { capture: true });
         }
@@ -511,15 +716,21 @@ const DrawingViewer = ({
               "rounded-full border px-3 py-1 text-xs font-semibold transition",
               isComparisonMode
                 ? "bg-gray-700 text-white"
-                : "bg-white text-black border-black"
+                : "bg-white text-black border-black",
             )}
             type="button"
-            title={isComparisonMode ? "비교 모드 해제" : "리비전 비교 모드"}
+            title={
+              isComparisonMode
+                ? "비교 모드 해제"
+                : "비교 모드 (Ctrl+클릭으로 여러 리비전 선택 후 활성화)"
+            }
           >
             {isComparisonMode ? "🔄 비교 중" : "비교"}
           </button>
           <span className="rounded-full border border-black px-3 py-1 text-xs font-semibold">
-            {selectedNodes.length > 1 ? `${selectedNodes.length}개 레이어` : "기본 렌더링"}
+            {selectedNodes.length > 1
+              ? `${selectedNodes.length}개 레이어`
+              : "기본 렌더링"}
           </span>
           <div className="flex items-center gap-1 px-2 py-1 border border-black rounded-full text-xs">
             <button
@@ -530,7 +741,9 @@ const DrawingViewer = ({
             >
               −
             </button>
-            <span className="w-12 text-center font-semibold">{Math.round(zoomLevel * 100)}%</span>
+            <span className="w-12 text-center font-semibold">
+              {Math.round(zoomLevel * 100)}%
+            </span>
             <button
               onClick={handleZoomIn}
               className="px-1 hover:font-bold"
@@ -559,46 +772,50 @@ const DrawingViewer = ({
               "rounded-full border px-3 py-1 text-xs font-semibold transition",
               isMarkupMode
                 ? "bg-gray-700 text-white"
-                : "bg-white text-black border-black"
+                : "bg-white text-black border-black",
             )}
             type="button"
-            title={isMarkupMode ? "마크업 모드 해제" : "마크업 모드 (그리기, 주석)"}
+            title={
+              isMarkupMode ? "마크업 모드 해제" : "마크업 모드 (그리기, 주석)"
+            }
           >
             {isMarkupMode ? "✏️ 마크업 중" : "✏️ 마크업"}
           </button>
         </div>
       </div>
-      
+
       {/* 마크업 도구 옵션 */}
       {isMarkupMode && (
         <div className="mt-3 flex flex-wrap items-center gap-3 p-3 bg-gray-50 rounded-md border border-gray-200">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold">도구:</span>
-            {(["pen", "eraser", "line", "rect", "circle", "text"] as const).map((tool) => (
-              <button
-                key={tool}
-                onClick={() => setMarkupTool(tool)}
-                className={cn(
-                  "px-2 py-1 text-xs rounded border transition",
-                  markupTool === tool
-                    ? "bg-gray-700 text-white border-gray-700"
-                    : "bg-white text-black border-gray-300 hover:border-gray-700"
-                )}
-                title={tool}
-                type="button"
-              >
-                {tool === "pen" && "✏️ 펜"}
-                {tool === "eraser" && "🧹 지우개"}
-                {tool === "line" && "📏 선"}
-                {tool === "rect" && "▭ 사각형"}
-                {tool === "circle" && "⭕ 원"}
-                {tool === "text" && "📝 텍스트"}
-              </button>
-            ))}
+            {(["pen", "eraser", "line", "rect", "circle", "text"] as const).map(
+              (tool) => (
+                <button
+                  key={tool}
+                  onClick={() => setMarkupTool(tool)}
+                  className={cn(
+                    "px-2 py-1 text-xs rounded border transition",
+                    markupTool === tool
+                      ? "bg-gray-700 text-white border-gray-700"
+                      : "bg-white text-black border-gray-300 hover:border-gray-700",
+                  )}
+                  title={tool}
+                  type="button"
+                >
+                  {tool === "pen" && "✏️ 펜"}
+                  {tool === "eraser" && "🧹 지우개"}
+                  {tool === "line" && "📏 선"}
+                  {tool === "rect" && "▭ 사각형"}
+                  {tool === "circle" && "⭕ 원"}
+                  {tool === "text" && "📝 텍스트"}
+                </button>
+              ),
+            )}
           </div>
-          
+
           <span className="text-black/30">|</span>
-          
+
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold">색상:</span>
             <input
@@ -609,7 +826,7 @@ const DrawingViewer = ({
               title="색상 선택"
             />
           </div>
-          
+
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold">선 두께:</span>
             <input
@@ -623,9 +840,9 @@ const DrawingViewer = ({
             />
             <span className="text-xs">{markupLineWidth}px</span>
           </div>
-          
+
           <span className="text-black/30">|</span>
-          
+
           <button
             onClick={undoMarkup}
             className="px-2 py-1 text-xs font-semibold bg-blue-500 text-white rounded hover:bg-blue-600 transition"
@@ -635,7 +852,7 @@ const DrawingViewer = ({
           >
             ↶ 취소
           </button>
-          
+
           <button
             onClick={clearMarkup}
             className="px-2 py-1 text-xs font-semibold bg-red-500 text-white rounded hover:bg-red-600 transition"
@@ -646,6 +863,26 @@ const DrawingViewer = ({
           </button>
         </div>
       )}
+      {/* 비교 모드 정보 섹션 */}
+      {isComparisonMode && (
+        <div className="mt-3 p-3 bg-blue-50 rounded-md border border-blue-200 text-xs text-blue-900">
+          <div className="font-semibold mb-2">🔄 비교 모드 사용 방법:</div>
+          <ul className="list-disc list-inside space-y-1 text-blue-800">
+            <li>
+              <strong>여러 리비전 선택:</strong> 좌측 도면 목록에서{" "}
+              <strong>Ctrl+클릭</strong>으로 비교할 리비전 2개 이상 선택
+            </li>
+            <li>
+              <strong>각 도면 제어:</strong> 줌/팬(마우스 드래그), 투명도
+              슬라이더로 개별 조정
+            </li>
+            <li>
+              <strong>비교 해제:</strong> 비교 버튼 다시 클릭 또는 도면 1개만
+              선택
+            </li>
+          </ul>
+        </div>
+      )}
       {hasRegions ? (
         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
           <span className="font-semibold text-black">Region</span>
@@ -654,7 +891,7 @@ const DrawingViewer = ({
               "rounded-full border px-3 py-1 font-semibold",
               !isRegionSelected
                 ? "bg-gray-700 text-white"
-                : "bg-white text-black"
+                : "bg-white text-black",
             )}
             type="button"
             onClick={() =>
@@ -670,7 +907,7 @@ const DrawingViewer = ({
                 "rounded-full border px-3 py-1 font-semibold",
                 primaryNode?.id === region.id
                   ? "bg-gray-700 text-white"
-                  : "bg-white text-black"
+                  : "bg-white text-black",
               )}
               type="button"
               onClick={() => onSelect(region.id, false)}
@@ -687,7 +924,7 @@ const DrawingViewer = ({
           // 비교 모드 렌더링
           <div className="w-full h-full flex gap-2 p-2">
             {comparisonDrawings.map((drawing) => (
-              <div 
+              <div
                 key={drawing.revisionId}
                 className="flex-1 flex flex-col gap-2"
               >
@@ -714,7 +951,9 @@ const DrawingViewer = ({
                   </button>
                   <span className="mx-1 text-black/30">|</span>
                   <button
-                    onClick={() => resetComparisonZoomAndPan(drawing.revisionId)}
+                    onClick={() =>
+                      resetComparisonZoomAndPan(drawing.revisionId)
+                    }
                     className="text-xs font-semibold hover:font-bold px-1"
                     title="초기화"
                     type="button"
@@ -732,28 +971,40 @@ const DrawingViewer = ({
                     max="1"
                     step="0.1"
                     value={getComparisonOpacity(drawing.revisionId)}
-                    onChange={(e) => setComparisonOpacity(drawing.revisionId, parseFloat(e.target.value))}
+                    onChange={(e) =>
+                      setComparisonOpacity(
+                        drawing.revisionId,
+                        parseFloat(e.target.value),
+                      )
+                    }
                     className="flex-1 h-1"
                     title="도면 투명도 조절"
                   />
                   <span className="w-8 text-center">
-                    {Math.round(getComparisonOpacity(drawing.revisionId) * 100)}%
+                    {Math.round(getComparisonOpacity(drawing.revisionId) * 100)}
+                    %
                   </span>
                 </div>
-                
+
                 {/* 비교 도면 캔버스 */}
-                <div 
-                  ref={(el) => { if (el) canvasRefs.current[drawing.revisionId] = el; }}
+                <div
+                  ref={(el) => {
+                    if (el) canvasRefs.current[drawing.revisionId] = el;
+                  }}
                   className="flex-1 relative overflow-auto border border-black bg-gray-100 rounded cursor-grab active:cursor-grabbing"
+                  onDragStart={(e) => e.preventDefault()}
                   onMouseDown={(e) => {
-                    if (e.button === 0 && getComparisonZoom(drawing.revisionId) > 1) {
+                    if (
+                      e.button === 0 &&
+                      getComparisonZoom(drawing.revisionId) > 1
+                    ) {
                       setComparisonDragging(drawing.revisionId, true);
                       setComparisonDragStart({
                         ...comparisonDragStart,
                         [drawing.revisionId]: {
                           x: e.clientX - getComparisonPan(drawing.revisionId).x,
-                          y: e.clientY - getComparisonPan(drawing.revisionId).y
-                        }
+                          y: e.clientY - getComparisonPan(drawing.revisionId).y,
+                        },
                       });
                     } else if (e.button === 0 && e.ctrlKey) {
                       setComparisonDragging(drawing.revisionId, true);
@@ -761,8 +1012,8 @@ const DrawingViewer = ({
                         ...comparisonDragStart,
                         [drawing.revisionId]: {
                           x: e.clientX - getComparisonPan(drawing.revisionId).x,
-                          y: e.clientY - getComparisonPan(drawing.revisionId).y
-                        }
+                          y: e.clientY - getComparisonPan(drawing.revisionId).y,
+                        },
                       });
                     } else if (e.button === 1) {
                       setComparisonDragging(drawing.revisionId, true);
@@ -770,19 +1021,20 @@ const DrawingViewer = ({
                         ...comparisonDragStart,
                         [drawing.revisionId]: {
                           x: e.clientX - getComparisonPan(drawing.revisionId).x,
-                          y: e.clientY - getComparisonPan(drawing.revisionId).y
-                        }
+                          y: e.clientY - getComparisonPan(drawing.revisionId).y,
+                        },
                       });
                     }
                   }}
                   onMouseMove={(e) => {
                     if (getComparisonDragging(drawing.revisionId)) {
                       e.preventDefault();
-                      const dragStartPos = comparisonDragStart[drawing.revisionId];
+                      const dragStartPos =
+                        comparisonDragStart[drawing.revisionId];
                       if (dragStartPos) {
                         setComparisonPan(drawing.revisionId, {
                           x: e.clientX - dragStartPos.x,
-                          y: e.clientY - dragStartPos.y
+                          y: e.clientY - dragStartPos.y,
                         });
                       }
                     }
@@ -793,7 +1045,11 @@ const DrawingViewer = ({
                   onMouseLeave={() => {
                     setComparisonDragging(drawing.revisionId, false);
                   }}
-                  style={{ userSelect: getComparisonDragging(drawing.revisionId) ? "none" : "auto" }}
+                  style={{
+                    userSelect: getComparisonDragging(drawing.revisionId)
+                      ? "none"
+                      : "auto",
+                  }}
                 >
                   <div
                     className="relative inline-block"
@@ -802,17 +1058,29 @@ const DrawingViewer = ({
                       height: baseSize.height,
                       transform: `translate(${getComparisonPan(drawing.revisionId).x}px, ${getComparisonPan(drawing.revisionId).y}px) scale(${getComparisonZoom(drawing.revisionId)})`,
                       transformOrigin: "top left",
-                      transition: getComparisonDragging(drawing.revisionId) ? "none" : "transform 0.1s ease-out"
+                      transition: getComparisonDragging(drawing.revisionId)
+                        ? "none"
+                        : "transform 0.1s ease-out",
                     }}
                   >
                     <Image
-                      src={`/drawings/${drawing.image}`}
+                      src={`/drawings/${encodeURIComponent(drawing.image)}`}
                       alt="비교 도면"
                       className="block h-auto w-full border border-black"
                       width={baseSize.width}
                       height={baseSize.height}
                       unoptimized
-                      style={{ opacity: getComparisonOpacity(drawing.revisionId) }}
+                      draggable={false}
+                      onDragStart={(e) => e.preventDefault()}
+                      onLoadingComplete={(img) => {
+                        setComparisonSize(drawing.revisionId, {
+                          width: img.naturalWidth,
+                          height: img.naturalHeight,
+                        });
+                      }}
+                      style={{
+                        opacity: getComparisonOpacity(drawing.revisionId),
+                      }}
                     />
                   </div>
                 </div>
@@ -820,35 +1088,40 @@ const DrawingViewer = ({
             ))}
           </div>
         ) : (
-          <div 
+          <div
             ref={canvasRef}
-            className="relative w-full h-full overflow-auto cursor-grab active:cursor-grabbing"
-            onWheel={handleWheel}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
+            className="relative w-full h-full overflow-hidden cursor-grab active:cursor-grabbing"
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={stopPointerDrag}
+            onPointerCancel={stopPointerDrag}
+            onDragStart={(e) => e.preventDefault()}
             onDoubleClick={handleDoubleClick}
             onContextMenu={(e) => e.preventDefault()}
-            style={{ userSelect: isDragging ? "none" : "auto", touchAction: "none" }}
+            style={{
+              userSelect: isDragging ? "none" : "auto",
+              touchAction: "none",
+            }}
           >
             <div
               className="relative inline-block w-full"
-              style={{ 
-                maxWidth: baseSize.width, 
+              style={{
+                maxWidth: baseSize.width,
                 maxHeight: baseSize.height,
                 transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoomLevel})`,
                 transformOrigin: "top left",
-                transition: isDragging ? "none" : "transform 0.1s ease-out"
+                transition: isDragging ? "none" : "transform 0.1s ease-out",
               }}
             >
               <Image
-                src={`/drawings/${baseImage}`}
+                src={`/drawings/${encodeURIComponent(baseImage || "")}`}
                 alt="기준 도면"
                 className="block h-auto w-full max-w-full border border-black"
                 width={baseSize.width}
                 height={baseSize.height}
                 unoptimized
+                draggable={false}
+                onDragStart={(e) => e.preventDefault()}
                 onLoadingComplete={(img) => {
                   setBaseSize({
                     width: img.naturalWidth,
@@ -893,7 +1166,7 @@ const DrawingViewer = ({
                   onMouseUp={handleMarkupMouseUp}
                   onMouseLeave={handleMarkupMouseUp}
                   style={{
-                    pointerEvents: isMarkupMode ? "auto" : "none"
+                    pointerEvents: isMarkupMode ? "auto" : "none",
                   }}
                 />
               )}
@@ -908,7 +1181,7 @@ const DrawingViewer = ({
               활성 오버레이 ({visibleOverlays.length})
             </p>
             <div className="flex flex-wrap gap-2">
-              {visibleOverlays.map((overlay, idx) => {
+              {visibleOverlays.map((overlay) => {
                 const color =
                   LAYER_COLORS[overlay.colorIndex % LAYER_COLORS.length];
                 return (
