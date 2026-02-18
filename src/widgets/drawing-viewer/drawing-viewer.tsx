@@ -163,22 +163,36 @@ const DrawingViewer = ({
 
   // 줌/패닝 핸들러
   const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const delta = e.deltaY > 0 ? 0.85 : 1.15;
-    setZoomLevel(prev => Math.max(0.1, Math.min(5, prev * delta)));
+    if (canvasRef.current?.contains(e.target as Node)) {
+      e.preventDefault();
+      e.stopPropagation();
+      const delta = e.deltaY > 0 ? 0.85 : 1.15;
+      setZoomLevel(prev => Math.max(0.1, Math.min(5, prev * delta)));
+    }
   }, []);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    // 중간 마우스 버튼 또는 Ctrl+좌클릭으로 드래그 시작
-    if (e.button === 1 || (e.button === 0 && e.ctrlKey)) {
-      setIsDragging(true);
-      setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+    // 좌클릭 또는 중간 마우스 버튼으로 드래그 시작 (줌인 상태에서 좌클릭 허용)
+    if (e.button === 0 || e.button === 1) {
+      if (e.button === 0 && e.ctrlKey) {
+        // Ctrl+좌클릭: 항상 드래그
+        setIsDragging(true);
+        setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+      } else if (e.button === 0 && zoomLevel > 1) {
+        // 좌클릭 + 줌인 상태: 드래그 활성화
+        setIsDragging(true);
+        setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+      } else if (e.button === 1) {
+        // 중간 마우스: 항상 드래그
+        setIsDragging(true);
+        setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+      }
     }
-  }, [pan]);
+  }, [pan, zoomLevel]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (isDragging) {
+      e.preventDefault();
       setPan({
         x: e.clientX - dragStart.x,
         y: e.clientY - dragStart.y
@@ -186,9 +200,12 @@ const DrawingViewer = ({
     }
   }, [isDragging, dragStart]);
 
-  const handleMouseUp = useCallback(() => {
+  const handleMouseUp = useCallback((e: React.MouseEvent) => {
+    if (isDragging) {
+      e.preventDefault();
+    }
     setIsDragging(false);
-  }, []);
+  }, [isDragging]);
 
   const resetZoomAndPan = useCallback(() => {
     setZoomLevel(1);
@@ -300,7 +317,8 @@ const DrawingViewer = ({
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
-            style={{ userSelect: isDragging ? "none" : "auto" }}
+            onContextMenu={(e) => e.preventDefault()}
+            style={{ userSelect: isDragging ? "none" : "auto", touchAction: "none" }}
           >
             <div
               className="relative inline-block w-full"
