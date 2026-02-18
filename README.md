@@ -2,6 +2,11 @@
 
 건설 현장 도면을 구조적으로 탐색하고 리비전 이력을 빠르게 파악하는 웹 기반 도면 뷰어입니다.
 
+**🔗 Links:**
+
+- 🚀 **배포 사이트**: [https://project-site-draw.vercel.app/](https://project-site-draw.vercel.app/)
+- 📦 **GitHub**: [https://github.com/yuwonkyu/Project_SiteDraw](https://github.com/yuwonkyu/Project_SiteDraw)
+
 ---
 
 ## 실행 방법
