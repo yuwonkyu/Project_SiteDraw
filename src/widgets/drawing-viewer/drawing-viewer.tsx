@@ -68,6 +68,16 @@ const DrawingViewer = ({
   const [comparisonDragStart, setComparisonDragStart] = useState<Record<string, { x: number; y: number }>>({});
   const canvasRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
+  // 마크업 도구 상태
+  const [isMarkupMode, setIsMarkupMode] = useState(false);
+  const [markupTool, setMarkupTool] = useState<"pen" | "eraser" | "line" | "rect" | "circle">("pen");
+  const [markupColor, setMarkupColor] = useState("#ff0000");
+  const [markupLineWidth, setMarkupLineWidth] = useState(2);
+  const [isMarkupDrawing, setIsMarkupDrawing] = useState(false);
+  const [markupDrawStart, setMarkupDrawStart] = useState({ x: 0, y: 0 });
+  const markupCanvasRef = useRef<HTMLCanvasElement>(null);
+  const markupCtxRef = useRef<CanvasRenderingContext2D | null>(null);
+
   const { selectedNodes, primaryNode, baseImage } = useMemo(() => {
     const nodes = Array.from(selectedIds)
       .map((id) => data.tree.nodes[id])
@@ -274,6 +284,106 @@ const DrawingViewer = ({
     setComparisonPan(revisionId, { x: 0, y: 0 });
   };
 
+  // 마크업 Canvas 초기화
+  const initializeMarkupCanvas = useCallback(() => {
+    const canvas = markupCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    markupCtxRef.current = ctx;
+    canvas.width = baseSize.width * zoomLevel;
+    canvas.height = baseSize.height * zoomLevel;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+  }, [baseSize.width, baseSize.height, zoomLevel]);
+
+  // 마크업 드로잉 시작
+  const handleMarkupMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!isMarkupMode || !markupCanvasRef.current) return;
+    
+    const canvas = markupCanvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    setMarkupDrawStart({ x, y });
+    setIsMarkupDrawing(true);
+  }, [isMarkupMode]);
+
+  // 마크업 드로잉 진행
+  const handleMarkupMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isMarkupMode || !isMarkupDrawing || !markupCanvasRef.current || !markupCtxRef.current) return;
+    
+    const canvas = markupCanvasRef.current;
+    const ctx = markupCtxRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    if (markupTool === "pen") {
+      ctx.strokeStyle = markupColor;
+      ctx.lineWidth = markupLineWidth;
+      ctx.beginPath();
+      ctx.moveTo(markupDrawStart.x, markupDrawStart.y);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      setMarkupDrawStart({ x, y });
+    } else if (markupTool === "eraser") {
+      ctx.clearRect(x - markupLineWidth * 2, y - markupLineWidth * 2, markupLineWidth * 4, markupLineWidth * 4);
+    }
+  }, [isMarkupMode, isMarkupDrawing, markupTool, markupColor, markupLineWidth, markupDrawStart]);
+
+  // 마크업 드로잉 종료
+  const handleMarkupMouseUp = useCallback((e: React.MouseEvent) => {
+    if (!isMarkupMode || !isMarkupDrawing || !markupCanvasRef.current || !markupCtxRef.current) return;
+    
+    const canvas = markupCanvasRef.current;
+    const ctx = markupCtxRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    if (markupTool === "line") {
+      ctx.strokeStyle = markupColor;
+      ctx.lineWidth = markupLineWidth;
+      ctx.beginPath();
+      ctx.moveTo(markupDrawStart.x, markupDrawStart.y);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    } else if (markupTool === "rect") {
+      ctx.strokeStyle = markupColor;
+      ctx.lineWidth = markupLineWidth;
+      const width = x - markupDrawStart.x;
+      const height = y - markupDrawStart.y;
+      ctx.strokeRect(markupDrawStart.x, markupDrawStart.y, width, height);
+    } else if (markupTool === "circle") {
+      ctx.strokeStyle = markupColor;
+      ctx.lineWidth = markupLineWidth;
+      const radius = Math.sqrt(Math.pow(x - markupDrawStart.x, 2) + Math.pow(y - markupDrawStart.y, 2));
+      ctx.beginPath();
+      ctx.arc(markupDrawStart.x, markupDrawStart.y, radius, 0, 2 * Math.PI);
+      ctx.stroke();
+    }
+
+    setIsMarkupDrawing(false);
+  }, [isMarkupMode, isMarkupDrawing, markupTool, markupColor, markupLineWidth, markupDrawStart]);
+
+  // 마크업 초기화
+  const clearMarkup = useCallback(() => {
+    const canvas = markupCanvasRef.current;
+    const ctx = markupCtxRef.current;
+    if (canvas && ctx) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  }, []);
+
+  // baseSize 또는 zoomLevel 변경 시 Canvas 재초기화
+  useEffect(() => {
+    if (isMarkupMode) {
+      initializeMarkupCanvas();
+    }
+  }, [baseSize, zoomLevel, isMarkupMode, initializeMarkupCanvas]);
+
   // 캔버스에서의 wheel 이벤트 처리 - preventDefault로 페이지 스크롤 차단
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -376,8 +486,92 @@ const DrawingViewer = ({
               1:1
             </button>
           </div>
+          {/* 마크업 도구 토글 */}
+          <button
+            onClick={() => {
+              setIsMarkupMode(!isMarkupMode);
+              if (!isMarkupMode) initializeMarkupCanvas();
+            }}
+            className={cn(
+              "rounded-full border px-3 py-1 text-xs font-semibold transition",
+              isMarkupMode
+                ? "bg-gray-700 text-white"
+                : "bg-white text-black border-black"
+            )}
+            type="button"
+            title={isMarkupMode ? "마크업 모드 해제" : "마크업 모드 (그리기, 주석)"}
+          >
+            {isMarkupMode ? "✏️ 마크업 중" : "✏️ 마크업"}
+          </button>
         </div>
       </div>
+      
+      {/* 마크업 도구 옵션 */}
+      {isMarkupMode && (
+        <div className="mt-3 flex flex-wrap items-center gap-3 p-3 bg-gray-50 rounded-md border border-gray-200">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold">도구:</span>
+            {(["pen", "eraser", "line", "rect", "circle"] as const).map((tool) => (
+              <button
+                key={tool}
+                onClick={() => setMarkupTool(tool)}
+                className={cn(
+                  "px-2 py-1 text-xs rounded border transition",
+                  markupTool === tool
+                    ? "bg-gray-700 text-white border-gray-700"
+                    : "bg-white text-black border-gray-300 hover:border-gray-700"
+                )}
+                title={tool}
+                type="button"
+              >
+                {tool === "pen" && "✏️ 펜"}
+                {tool === "eraser" && "🧹 지우개"}
+                {tool === "line" && "📏 선"}
+                {tool === "rect" && "▭ 사각형"}
+                {tool === "circle" && "⭕ 원"}
+              </button>
+            ))}
+          </div>
+          
+          <span className="text-black/30">|</span>
+          
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold">색상:</span>
+            <input
+              type="color"
+              value={markupColor}
+              onChange={(e) => setMarkupColor(e.target.value)}
+              className="w-8 h-8 border border-gray-300 rounded cursor-pointer"
+              title="색상 선택"
+            />
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold">선 두께:</span>
+            <input
+              type="range"
+              min="1"
+              max="10"
+              value={markupLineWidth}
+              onChange={(e) => setMarkupLineWidth(parseInt(e.target.value))}
+              className="w-24"
+              title="선 두께 조정"
+            />
+            <span className="text-xs">{markupLineWidth}px</span>
+          </div>
+          
+          <span className="text-black/30">|</span>
+          
+          <button
+            onClick={clearMarkup}
+            className="px-2 py-1 text-xs font-semibold bg-red-500 text-white rounded hover:bg-red-600 transition"
+            type="button"
+            title="그림 초기화"
+          >
+            🗑️ 초기화
+          </button>
+        </div>
+      )}
       {hasRegions ? (
         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
           <span className="font-semibold text-black">Region</span>
@@ -595,6 +789,20 @@ const DrawingViewer = ({
                   })}
                 </svg>
               ) : null}
+              {/* 마크업 Canvas 오버레이 */}
+              {isMarkupMode && (
+                <canvas
+                  ref={markupCanvasRef}
+                  className="absolute left-0 top-0 cursor-crosshair"
+                  onMouseDown={handleMarkupMouseDown}
+                  onMouseMove={handleMarkupMouseMove}
+                  onMouseUp={handleMarkupMouseUp}
+                  onMouseLeave={handleMarkupMouseUp}
+                  style={{
+                    pointerEvents: isMarkupMode ? "auto" : "none"
+                  }}
+                />
+              )}
             </div>
           </div>
         )}
