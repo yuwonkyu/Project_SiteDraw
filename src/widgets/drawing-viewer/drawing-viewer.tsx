@@ -150,6 +150,7 @@ const DrawingViewer = ({ data, selectedIds, visibleIds, selectedRevisionId, onSe
   // 줌/패닝 핸들러
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     const delta = e.deltaY > 0 ? 0.85 : 1.15;
     setZoomLevel(prev => Math.max(0.1, Math.min(5, prev * delta)));
   }, []);
