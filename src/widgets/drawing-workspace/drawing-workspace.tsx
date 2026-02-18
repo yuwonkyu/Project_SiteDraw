@@ -85,28 +85,18 @@ const DrawingWorkspace = ({ metadata }: DrawingWorkspaceProps) => {
   }, []);
 
   return (
-    <div className="grid gap-4">
-      <CurrentContext
-        data={parsed}
-        selectedIds={selectedIds}
-        visibleIds={visibleIds}
-        selectedRevisionId={selectedRevisionId}
-        isComparisonMode={isComparisonMode}
-        comparisonRevisions={comparisonRevisions}
-        onToggleVisibility={handleToggleVisibility}
-        onRevisionSelect={handleRevisionSelect}
-        onAddToComparison={handleAddToComparison}
-      />
-      <DrawingFilter
-        data={parsed}
-        onSelect={(id, add) => handleSelect(id, add)}
-      />
-      <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
+    <div className="grid gap-0 lg:grid-cols-[280px_1fr_320px] h-[calc(100vh-120px)]">
+      {/* 왼쪽: 탐색구조 (고정) */}
+      <div className="border-r border-black overflow-y-auto bg-white p-4">
         <DrawingExplorer
           data={parsed}
           selectedIds={selectedIds}
           onSelect={handleSelect}
         />
+      </div>
+
+      {/* 중앙: 도면뷰어 (넓게, 높이 제한) */}
+      <div className="border-r border-black overflow-hidden bg-gray-50 p-4 flex flex-col min-w-0">
         <DrawingViewer
           data={parsed}
           selectedIds={selectedIds}
@@ -116,6 +106,27 @@ const DrawingWorkspace = ({ metadata }: DrawingWorkspaceProps) => {
           onSelect={handleSelect}
           onToggleComparison={handleToggleComparison}
         />
+      </div>
+
+      {/* 오른쪽: 정보패널 */}
+      <div className="bg-white p-4 overflow-y-auto border-l border-black">
+        <CurrentContext
+          data={parsed}
+          selectedIds={selectedIds}
+          visibleIds={visibleIds}
+          selectedRevisionId={selectedRevisionId}
+          isComparisonMode={isComparisonMode}
+          comparisonRevisions={comparisonRevisions}
+          onToggleVisibility={handleToggleVisibility}
+          onRevisionSelect={handleRevisionSelect}
+          onAddToComparison={handleAddToComparison}
+        />
+        <div className="mt-4">
+          <DrawingFilter
+            data={parsed}
+            onSelect={(id, add) => handleSelect(id, add)}
+          />
+        </div>
       </div>
     </div>
   );

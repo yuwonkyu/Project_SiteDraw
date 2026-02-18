@@ -59,26 +59,13 @@ const DrawingViewer = ({
   const activePointerIdRef = useRef<number | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
 
-  // 비교 모드용 독립적인 줌/팬 상태
-  const [comparisonZoomLevels, setComparisonZoomLevels] = useState<
-    Record<string, number>
-  >({});
-  const [comparisonPans, setComparisonPans] = useState<
-    Record<string, { x: number; y: number }>
-  >({});
-  const [comparisonSizes, setComparisonSizes] = useState<
-    Record<string, { width: number; height: number }>
-  >({});
-  const [comparisonDraggingState, setComparisonDraggingState] = useState<
-    Record<string, boolean>
-  >({});
-  const [comparisonDragStart, setComparisonDragStart] = useState<
-    Record<string, { x: number; y: number }>
-  >({});
+  // 비교 모드용 투명도 및 표시 상태
   const [comparisonOpacities, setComparisonOpacities] = useState<
     Record<string, number>
   >({});
-  const canvasRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [comparisonVisibility, setComparisonVisibility] = useState<
+    Record<string, boolean>
+  >({});
 
   // 마크업 도구 상태
   const [isMarkupMode, setIsMarkupMode] = useState(false);
@@ -285,51 +272,8 @@ const DrawingViewer = ({
     setPan({ x: 0, y: 0 });
   }, [baseSize.width, baseSize.height]);
 
-  // 비교 모드용 줌/팬 제어
-  const getComparisonZoom = (revisionId: string) =>
-    comparisonZoomLevels[revisionId] ?? 1;
-  const getComparisonPan = (revisionId: string) =>
-    comparisonPans[revisionId] ?? { x: 0, y: 0 };
-  const getComparisonDragging = (revisionId: string) =>
-    comparisonDraggingState[revisionId] ?? false;
-
-  const setComparisonZoom = (revisionId: string, zoom: number) => {
-    setComparisonZoomLevels((prev) => ({ ...prev, [revisionId]: zoom }));
-  };
-
-  const setComparisonPan = (
-    revisionId: string,
-    pan: { x: number; y: number },
-  ) => {
-    setComparisonPans((prev) => ({ ...prev, [revisionId]: pan }));
-  };
-
-  const setComparisonSize = (
-    revisionId: string,
-    size: { width: number; height: number },
-  ) => {
-    setComparisonSizes((prev) => {
-      const current = prev[revisionId];
-      if (
-        current &&
-        current.width === size.width &&
-        current.height === size.height
-      ) {
-        return prev;
-      }
-      return { ...prev, [revisionId]: size };
-    });
-  };
-
-  const setComparisonDragging = (revisionId: string, isDragging: boolean) => {
-    setComparisonDraggingState((prev) => ({
-      ...prev,
-      [revisionId]: isDragging,
-    }));
-  };
-
   const getComparisonOpacity = (revisionId: string) =>
-    comparisonOpacities[revisionId] ?? 1;
+    comparisonOpacities[revisionId] ?? 0.8;
 
   const setComparisonOpacity = (revisionId: string, opacity: number) => {
     setComparisonOpacities((prev) => ({
@@ -338,64 +282,36 @@ const DrawingViewer = ({
     }));
   };
 
-  const handleComparisonZoomIn = (revisionId: string) => {
-    setComparisonZoom(
-      revisionId,
-      Math.min(5, getComparisonZoom(revisionId) * 1.2),
-    );
+  const getComparisonVisibility = (revisionId: string) =>
+    comparisonVisibility[revisionId] ?? true;
+
+  const toggleComparisonVisibility = (revisionId: string) => {
+    setComparisonVisibility((prev) => ({
+      ...prev,
+      [revisionId]: !(prev[revisionId] ?? true),
+    }));
   };
 
-  const handleComparisonZoomOut = (revisionId: string) => {
-    setComparisonZoom(
-      revisionId,
-      Math.max(0.1, getComparisonZoom(revisionId) / 1.2),
-    );
-  };
-
-  const resetComparisonZoomAndPan = (revisionId: string) => {
-    const canvas = canvasRefs.current[revisionId];
-    const size = comparisonSizes[revisionId];
-    if (!canvas || !size) {
-      setComparisonZoom(revisionId, 1);
-      setComparisonPan(revisionId, { x: 0, y: 0 });
-      return;
-    }
-
-    const zoomX = canvas.clientWidth / size.width;
-    const zoomY = canvas.clientHeight / size.height;
-    const fitZoom = Math.min(zoomX, zoomY, 1);
-    setComparisonZoom(revisionId, fitZoom);
-    setComparisonPan(revisionId, { x: 0, y: 0 });
-  };
-
+  // 비교 모드 초기화: 모든 레이어 표시 및 투명도 기본값 설정
   useEffect(() => {
     if (!isComparisonMode) return;
 
     comparisonDrawings.forEach(({ revisionId }) => {
-      const canvas = canvasRefs.current[revisionId];
-      const size = comparisonSizes[revisionId];
-      if (!canvas || !size) return;
-
-      const zoomX = canvas.clientWidth / size.width;
-      const zoomY = canvas.clientHeight / size.height;
-      const fitZoom = Math.min(zoomX, zoomY, 1);
-
-      setComparisonZoomLevels((prev) => {
-        if (prev[revisionId] === fitZoom) {
-          return prev;
-        }
-        return { ...prev, [revisionId]: fitZoom };
-      });
-
-      setComparisonPans((prev) => {
-        const current = prev[revisionId];
-        if (!current || (current.x === 0 && current.y === 0)) {
-          return prev;
-        }
-        return { ...prev, [revisionId]: { x: 0, y: 0 } };
-      });
+      if (!(revisionId in comparisonOpacities)) {
+        setComparisonOpacities((prev) => ({
+          ...prev,
+          [revisionId]: 0.8,
+        }));
+      }
+      if (!(revisionId in comparisonVisibility)) {
+        setComparisonVisibility((prev) => ({
+          ...prev,
+          [revisionId]: true,
+        }));
+      }
     });
-  }, [comparisonDrawings, comparisonSizes, isComparisonMode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [comparisonDrawings, isComparisonMode]);
 
   // 마크업 Canvas 초기화
   const initializeMarkupCanvas = useCallback(() => {
@@ -590,14 +506,9 @@ const DrawingViewer = ({
     const handleWindowWheel = (e: Event) => {
       const wheelEvent = e as WheelEvent;
       const canvas = canvasRef.current;
-      const comparisonCanvases = Object.values(canvasRefs.current);
 
-      // 캔버스 또는 비교 캔버스 위에 있으면 무조건 차단
-      const isOnCanvas =
-        (canvas && canvas.contains(wheelEvent.target as Node)) ||
-        comparisonCanvases.some(
-          (c) => c && c.contains(wheelEvent.target as Node),
-        );
+      // 캔버스 위에 있으면 무조건 차단
+      const isOnCanvas = canvas && canvas.contains(wheelEvent.target as Node);
 
       if (isOnCanvas) {
         // 이벤트 전파 완전 차단
@@ -623,7 +534,7 @@ const DrawingViewer = ({
   // 캔버스에서의 wheel 이벤트 처리 - 페이지 스크롤 완벽 차단
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !baseImage || isComparisonMode) return;
+    if (!canvas || (!baseImage && !isComparisonMode)) return;
 
     const handleWheelEvent = (e: WheelEvent) => {
       // ⚠️ 캔버스 위에서는 모든 wheel 이벤트를 차단
@@ -650,64 +561,9 @@ const DrawingViewer = ({
     };
   }, [baseImage, isComparisonMode]);
 
-  // 비교 모드 캔버스의 wheel 이벤트 처리
-  useEffect(() => {
-    const handleWheelEvent = (revisionId: string) => (e: WheelEvent) => {
-      const canvas = canvasRefs.current[revisionId];
-      if (canvas && canvas.contains(e.target as Node)) {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-
-        const delta = e.deltaY > 0 ? 0.85 : 1.15;
-        setComparisonZoom(
-          revisionId,
-          Math.max(
-            0.1,
-            Math.min(5, (comparisonZoomLevels[revisionId] ?? 1) * delta),
-          ),
-        );
-      }
-    };
-
-    const revisionIds = Array.from(comparisonRevisions);
-    // 현재 refs 스냅샷 저장
-    const currentRefs = revisionIds.reduce(
-      (acc, revId) => {
-        acc[revId] = canvasRefs.current[revId];
-        return acc;
-      },
-      {} as Record<string, HTMLDivElement | null>,
-    );
-
-    const listeners = revisionIds.map((revId) => ({
-      revId,
-      handler: handleWheelEvent(revId),
-    }));
-
-    listeners.forEach(({ revId, handler }) => {
-      const canvas = currentRefs[revId];
-      if (canvas) {
-        canvas.addEventListener("wheel", handler, {
-          passive: false,
-          capture: true,
-        });
-      }
-    });
-
-    return () => {
-      listeners.forEach(({ revId, handler }) => {
-        const canvas = currentRefs[revId];
-        if (canvas) {
-          canvas.removeEventListener("wheel", handler, { capture: true });
-        }
-      });
-    };
-  }, [comparisonRevisions, comparisonZoomLevels]);
-
   return (
-    <section className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-black">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+    <section className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-black flex flex-col h-full min-h-0 overflow-hidden gap-3">
+      <div className="flex items-center justify-between flex-wrap gap-3 flex-none">
         <SectionTitle>도면 뷰어</SectionTitle>
         <div className="flex items-center gap-2 flex-wrap">
           <button
@@ -786,7 +642,7 @@ const DrawingViewer = ({
 
       {/* 마크업 도구 옵션 */}
       {isMarkupMode && (
-        <div className="mt-3 flex flex-wrap items-center gap-3 p-3 bg-gray-50 rounded-md border border-gray-200">
+        <div className="flex flex-wrap items-center gap-3 p-3 bg-gray-50 rounded-md border border-gray-200 flex-none">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold">도구:</span>
             {(["pen", "eraser", "line", "rect", "circle", "text"] as const).map(
@@ -865,7 +721,7 @@ const DrawingViewer = ({
       )}
       {/* 비교 모드 정보 섹션 */}
       {isComparisonMode && (
-        <div className="mt-3 p-3 bg-blue-50 rounded-md border border-blue-200 text-xs text-blue-900">
+        <div className="p-3 bg-blue-50 rounded-md border border-blue-200 text-xs text-blue-900 flex-none">
           <div className="font-semibold mb-2">🔄 비교 모드 사용 방법:</div>
           <ul className="list-disc list-inside space-y-1 text-blue-800">
             <li>
@@ -884,7 +740,7 @@ const DrawingViewer = ({
         </div>
       )}
       {hasRegions ? (
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+        <div className="flex flex-wrap items-center gap-2 text-xs flex-none">
           <span className="font-semibold text-black">Region</span>
           <button
             className={cn(
@@ -917,175 +773,141 @@ const DrawingViewer = ({
           ))}
         </div>
       ) : null}
-      <div className="mt-4 flex min-h-105 items-center justify-center rounded-md border border-black bg-gray-50 overflow-hidden">
+      <div className="flex-1 flex items-center justify-center rounded-md border border-black bg-gray-50 overflow-hidden min-h-0">
         {!baseImage && !isComparisonMode ? (
           <p className="text-sm text-black">선택된 도면이 없습니다.</p>
         ) : isComparisonMode && comparisonDrawings.length > 0 ? (
-          // 비교 모드 렌더링
-          <div className="w-full h-full flex gap-2 p-2">
-            {comparisonDrawings.map((drawing) => (
-              <div
-                key={drawing.revisionId}
-                className="flex-1 flex flex-col gap-2"
-              >
-                {/* 비교 도면의 줌 컨트롤 */}
-                <div className="flex items-center gap-1 px-2 py-1 border border-black rounded-full text-xs bg-white">
-                  <button
-                    onClick={() => handleComparisonZoomOut(drawing.revisionId)}
-                    className="px-1 hover:font-bold"
-                    title="축소"
-                    type="button"
-                  >
-                    −
-                  </button>
-                  <span className="w-12 text-center font-semibold">
-                    {Math.round(getComparisonZoom(drawing.revisionId) * 100)}%
-                  </span>
-                  <button
-                    onClick={() => handleComparisonZoomIn(drawing.revisionId)}
-                    className="px-1 hover:font-bold"
-                    title="확대"
-                    type="button"
-                  >
-                    +
-                  </button>
-                  <span className="mx-1 text-black/30">|</span>
-                  <button
-                    onClick={() =>
-                      resetComparisonZoomAndPan(drawing.revisionId)
-                    }
-                    className="text-xs font-semibold hover:font-bold px-1"
-                    title="초기화"
-                    type="button"
-                  >
-                    1:1
-                  </button>
-                </div>
+          // 비교 모드: 오버레이 렌더링
+          <div className="w-full h-full flex flex-col gap-2">
+            {/* 레이어 컨트롤 패널 */}
+            <div className="flex flex-wrap gap-2 p-2 bg-white border-b border-black">
+              {comparisonDrawings.map((drawing, idx) => {
+                const revEntry = data.revisions.find(
+                  (r) => r.id === drawing.revisionId,
+                );
+                const revisionName = revEntry
+                  ? `${revEntry.drawingName} - ${revEntry.revision}`
+                  : `도면 ${idx + 1}`;
+                const isVisible = getComparisonVisibility(drawing.revisionId);
 
-                {/* 알파 슬라이더 (투명도 조절) */}
-                <div className="flex items-center gap-2 px-2 py-1 border border-black rounded text-xs bg-white">
-                  <span className="font-semibold">투명도:</span>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.1"
-                    value={getComparisonOpacity(drawing.revisionId)}
-                    onChange={(e) =>
-                      setComparisonOpacity(
-                        drawing.revisionId,
-                        parseFloat(e.target.value),
-                      )
-                    }
-                    className="flex-1 h-1"
-                    title="도면 투명도 조절"
-                  />
-                  <span className="w-8 text-center">
-                    {Math.round(getComparisonOpacity(drawing.revisionId) * 100)}
-                    %
-                  </span>
-                </div>
-
-                {/* 비교 도면 캔버스 */}
-                <div
-                  ref={(el) => {
-                    if (el) canvasRefs.current[drawing.revisionId] = el;
-                  }}
-                  className="flex-1 relative overflow-auto border border-black bg-gray-100 rounded cursor-grab active:cursor-grabbing"
-                  onDragStart={(e) => e.preventDefault()}
-                  onMouseDown={(e) => {
-                    if (
-                      e.button === 0 &&
-                      getComparisonZoom(drawing.revisionId) > 1
-                    ) {
-                      setComparisonDragging(drawing.revisionId, true);
-                      setComparisonDragStart({
-                        ...comparisonDragStart,
-                        [drawing.revisionId]: {
-                          x: e.clientX - getComparisonPan(drawing.revisionId).x,
-                          y: e.clientY - getComparisonPan(drawing.revisionId).y,
-                        },
-                      });
-                    } else if (e.button === 0 && e.ctrlKey) {
-                      setComparisonDragging(drawing.revisionId, true);
-                      setComparisonDragStart({
-                        ...comparisonDragStart,
-                        [drawing.revisionId]: {
-                          x: e.clientX - getComparisonPan(drawing.revisionId).x,
-                          y: e.clientY - getComparisonPan(drawing.revisionId).y,
-                        },
-                      });
-                    } else if (e.button === 1) {
-                      setComparisonDragging(drawing.revisionId, true);
-                      setComparisonDragStart({
-                        ...comparisonDragStart,
-                        [drawing.revisionId]: {
-                          x: e.clientX - getComparisonPan(drawing.revisionId).x,
-                          y: e.clientY - getComparisonPan(drawing.revisionId).y,
-                        },
-                      });
-                    }
-                  }}
-                  onMouseMove={(e) => {
-                    if (getComparisonDragging(drawing.revisionId)) {
-                      e.preventDefault();
-                      const dragStartPos =
-                        comparisonDragStart[drawing.revisionId];
-                      if (dragStartPos) {
-                        setComparisonPan(drawing.revisionId, {
-                          x: e.clientX - dragStartPos.x,
-                          y: e.clientY - dragStartPos.y,
-                        });
-                      }
-                    }
-                  }}
-                  onMouseUp={() => {
-                    setComparisonDragging(drawing.revisionId, false);
-                  }}
-                  onMouseLeave={() => {
-                    setComparisonDragging(drawing.revisionId, false);
-                  }}
-                  style={{
-                    userSelect: getComparisonDragging(drawing.revisionId)
-                      ? "none"
-                      : "auto",
-                  }}
-                >
+                return (
                   <div
-                    className="relative inline-block"
-                    style={{
-                      width: baseSize.width,
-                      height: baseSize.height,
-                      transform: `translate(${getComparisonPan(drawing.revisionId).x}px, ${getComparisonPan(drawing.revisionId).y}px) scale(${getComparisonZoom(drawing.revisionId)})`,
-                      transformOrigin: "top left",
-                      transition: getComparisonDragging(drawing.revisionId)
-                        ? "none"
-                        : "transform 0.1s ease-out",
-                    }}
+                    key={drawing.revisionId}
+                    className="flex items-center gap-2 px-3 py-2 border border-black rounded text-xs bg-gray-50"
                   >
+                    {/* 표시/숨김 토글 */}
+                    <button
+                      onClick={() =>
+                        toggleComparisonVisibility(drawing.revisionId)
+                      }
+                      className={cn(
+                        "w-4 h-4 rounded border-2 flex items-center justify-center",
+                        isVisible
+                          ? "bg-black border-black text-white"
+                          : "bg-white border-gray-400",
+                      )}
+                      title={isVisible ? "레이어 숨기기" : "레이어 표시"}
+                      type="button"
+                    >
+                      {isVisible && "✓"}
+                    </button>
+
+                    {/* 리비전 이름 */}
+                    <span className="font-semibold whitespace-nowrap">
+                      {revisionName}
+                    </span>
+
+                    {/* 투명도 슬라이더 */}
+                    <div className="flex items-center gap-1">
+                      <span className="text-gray-600">투명도:</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={getComparisonOpacity(drawing.revisionId)}
+                        onChange={(e) =>
+                          setComparisonOpacity(
+                            drawing.revisionId,
+                            parseFloat(e.target.value),
+                          )
+                        }
+                        className="w-20 h-1"
+                        title="도면 투명도 조절"
+                      />
+                      <span className="w-8 text-right text-gray-600">
+                        {Math.round(
+                          getComparisonOpacity(drawing.revisionId) * 100,
+                        )}
+                        %
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* 캔버스: 모든 도면 오버레이 */}
+            <div
+              ref={canvasRef}
+              className="relative flex-1 overflow-hidden cursor-grab active:cursor-grabbing"
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={stopPointerDrag}
+              onPointerCancel={stopPointerDrag}
+              onDragStart={(e) => e.preventDefault()}
+              onDoubleClick={handleDoubleClick}
+              onContextMenu={(e) => e.preventDefault()}
+              style={{
+                userSelect: isDragging ? "none" : "auto",
+                touchAction: "none",
+              }}
+            >
+              <div
+                className="relative inline-block"
+                style={{
+                  maxWidth: baseSize.width,
+                  maxHeight: baseSize.height,
+                  transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoomLevel})`,
+                  transformOrigin: "top left",
+                  transition: isDragging ? "none" : "transform 0.1s ease-out",
+                }}
+              >
+                {/* 모든 비교 도면을 겹쳐서 표시 */}
+                {comparisonDrawings.map((drawing, idx) => {
+                  const isVisible = getComparisonVisibility(drawing.revisionId);
+                  if (!isVisible) return null;
+
+                  return (
                     <Image
+                      key={drawing.revisionId}
                       src={`/drawings/${encodeURIComponent(drawing.image)}`}
-                      alt="비교 도면"
+                      alt={`비교 도면 ${idx + 1}`}
                       className="block h-auto w-full border border-black"
+                      style={{
+                        position: idx === 0 ? undefined : "absolute",
+                        top: 0,
+                        left: 0,
+                        opacity: getComparisonOpacity(drawing.revisionId),
+                      }}
                       width={baseSize.width}
                       height={baseSize.height}
                       unoptimized
                       draggable={false}
                       onDragStart={(e) => e.preventDefault()}
                       onLoadingComplete={(img) => {
-                        setComparisonSize(drawing.revisionId, {
-                          width: img.naturalWidth,
-                          height: img.naturalHeight,
-                        });
-                      }}
-                      style={{
-                        opacity: getComparisonOpacity(drawing.revisionId),
+                        if (idx === 0) {
+                          setBaseSize({
+                            width: img.naturalWidth,
+                            height: img.naturalHeight,
+                          });
+                        }
                       }}
                     />
-                  </div>
-                </div>
+                  );
+                })}
               </div>
-            ))}
+            </div>
           </div>
         ) : (
           <div
@@ -1174,10 +996,10 @@ const DrawingViewer = ({
           </div>
         )}
       </div>
-      <div className="mt-3">
+      <div className="flex-none overflow-y-auto max-h-24">
         {visibleOverlays.length > 0 ? (
-          <div>
-            <p className="text-xs font-semibold text-black mb-2">
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-black">
               활성 오버레이 ({visibleOverlays.length})
             </p>
             <div className="flex flex-wrap gap-2">
@@ -1201,13 +1023,12 @@ const DrawingViewer = ({
                 );
               })}
             </div>
-            <p className="mt-2 text-xs text-black">
-              다중 도면을 색상으로 구분하여 표시합니다. Ctrl+Click으로 레이어를
-              추가할 수 있습니다.
+            <p className="text-xs text-gray-600">
+              다중 도면을 색상으로 구분하여 표시합니다.
             </p>
           </div>
         ) : (
-          <p className="text-xs text-black">선택된 오버레이가 없습니다.</p>
+          <p className="text-xs text-gray-600">선택된 오버레이가 없습니다.</p>
         )}
       </div>
     </section>
