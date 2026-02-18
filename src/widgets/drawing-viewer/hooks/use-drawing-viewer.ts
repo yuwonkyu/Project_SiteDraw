@@ -131,57 +131,18 @@ export const useDrawingViewer = () => {
     setPan({ x: 0, y: 0 });
   }, [viewerState.baseSize, setZoomLevel, setPan]);
 
-  // Wheel 이벤트 처리
-  useEffect(() => {
-    const handleWindowWheel = (e: Event) => {
-      const wheelEvent = e as WheelEvent;
-      const canvas = canvasRef.current;
-      const isOnCanvas = canvas && canvas.contains(wheelEvent.target as Node);
-
-      if (isOnCanvas) {
-        wheelEvent.preventDefault();
-        wheelEvent.stopPropagation();
-        wheelEvent.stopImmediatePropagation();
-      }
-    };
-
-    document.addEventListener("wheel", handleWindowWheel, {
-      passive: false,
-      capture: false,
-    });
-
-    return () => {
-      document.removeEventListener("wheel", handleWindowWheel, {
-        capture: false,
-      });
-    };
-  }, []);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const handleWheelEvent = (e: WheelEvent) => {
+  // Wheel 이벤트 처리 (React 핸들러로 전환)
+  const handleWheel = useCallback(
+    (e: React.WheelEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      e.stopImmediatePropagation();
 
       const delta = e.deltaY > 0 ? 0.85 : 1.15;
-      setViewerState((prev) => ({
-        ...prev,
-        zoomLevel: Math.max(0.1, Math.min(5, prev.zoomLevel * delta)),
-      }));
-    };
-
-    canvas.addEventListener("wheel", handleWheelEvent, {
-      passive: false,
-      capture: true,
-    });
-
-    return () => {
-      canvas.removeEventListener("wheel", handleWheelEvent, { capture: true });
-    };
-  }, []);
+      const newZoom = Math.max(0.1, Math.min(5, viewerState.zoomLevel * delta));
+      setZoomLevel(newZoom);
+    },
+    [viewerState.zoomLevel, setZoomLevel],
+  );
 
   return {
     viewerState,
@@ -199,5 +160,6 @@ export const useDrawingViewer = () => {
     handleZoomIn,
     handleZoomOut,
     handleDoubleClick,
+    handleWheel,
   };
 };

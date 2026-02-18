@@ -465,6 +465,7 @@ const DrawingViewer = ({
               onDragStart={(e) => e.preventDefault()}
               onDoubleClick={viewer.handleDoubleClick}
               onContextMenu={(e) => e.preventDefault()}
+              onWheel={viewer.handleWheel}
               style={{
                 userSelect: viewer.viewerState.isDragging ? "none" : "auto",
                 touchAction: "none",
@@ -533,6 +534,7 @@ const DrawingViewer = ({
             onDragStart={(e) => e.preventDefault()}
             onDoubleClick={viewer.handleDoubleClick}
             onContextMenu={(e) => e.preventDefault()}
+            onWheel={viewer.handleWheel}
             style={{
               userSelect: viewer.viewerState.isDragging ? "none" : "auto",
               touchAction: "none",
@@ -602,6 +604,7 @@ const DrawingViewer = ({
                   onMouseMove={handleMarkupMouseMove}
                   onMouseUp={handleMarkupMouseUp}
                   onMouseLeave={handleMarkupMouseUp}
+                  onWheel={viewer.handleWheel}
                   title="마크업: 그리기 | Shift+마우스드래그: 도면 이동"
                   style={{
                     pointerEvents: markup.markupState.isMarkupMode
