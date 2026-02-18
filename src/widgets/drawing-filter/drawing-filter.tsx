@@ -113,7 +113,7 @@ export const DrawingFilter = ({ data, onSelect }: DrawingFilterProps) => {
       <SectionTitle>검색 & 필터</SectionTitle>
 
       {/* 검색 입력 */}
-      <div className="mt-3 flex flex-col gap-3">
+      <div className="mt-3 flex flex-col gap-2">
         <div className="flex items-center gap-2">
           <input
             type="text"
@@ -122,10 +122,12 @@ export const DrawingFilter = ({ data, onSelect }: DrawingFilterProps) => {
             onChange={(e) => handleSearch(e.target.value)}
             className="flex-1 px-3 py-2 border border-black rounded text-sm"
           />
-          <span className="text-xs font-semibold text-black">
-            결과: {resultCount}개
-          </span>
         </div>
+        {(searchTerm || filterDiscipline) && (
+          <div className="text-xs font-semibold text-black">
+            결과: {resultCount}개
+          </div>
+        )}
 
         {/* 공종 필터 */}
         <div className="flex flex-wrap items-center gap-2">

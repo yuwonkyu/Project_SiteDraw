@@ -138,7 +138,6 @@ const DrawingViewer = ({
 
   const overlays: OverlayInfo[] = useMemo(() => {
     const items: OverlayInfo[] = [];
-    const disciplineSet = new Set<string>();
 
     selectedNodes.forEach((node, index) => {
       if (node.kind === "drawing") return;
@@ -156,25 +155,26 @@ const DrawingViewer = ({
         return;
       }
 
-      const disciplineNode =
-        node.kind === "region" ? data.tree.nodes[node.parentId ?? ""] : node;
-
-      if (
-        disciplineNode?.kind === "discipline" &&
-        !disciplineSet.has(disciplineNode.id)
-      ) {
-        disciplineSet.add(disciplineNode.id);
+      // Region, Discipline 모두 표시
+      if (node.kind === "region") {
         items.push({
-          nodeId: disciplineNode.id,
-          disciplineName: disciplineNode.name,
-          polygon: disciplineNode.polygon,
+          nodeId: node.id,
+          disciplineName: `${node.discipline} > ${node.name}`,
+          polygon: node.polygon,
+          colorIndex: items.length % LAYER_COLORS.length,
+        });
+      } else if (node.kind === "discipline") {
+        items.push({
+          nodeId: node.id,
+          disciplineName: node.name,
+          polygon: node.polygon,
           colorIndex: items.length % LAYER_COLORS.length,
         });
       }
     });
 
     return items;
-  }, [selectedNodes, data.revisions, data.tree.nodes]);
+  }, [selectedNodes, data.revisions]);
 
   // visibleIds로 필터링
   const visibleOverlays = overlays.filter((overlay) =>
