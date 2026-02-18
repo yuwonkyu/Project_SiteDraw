@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useCallback } from "react";
 import Image from "next/image";
 import { cn } from "@/shared/lib";
 import { SectionTitle } from "@/shared/ui";
@@ -41,6 +41,11 @@ type DrawingViewerProps = {
 
 const DrawingViewer = ({ data, selectedIds, visibleIds, selectedRevisionId, onSelect }: DrawingViewerProps) => {
   const [baseSize, setBaseSize] = useState({ width: 1600, height: 1000 });
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const canvasRef = useRef<HTMLDivElement>(null);
 
   const { selectedNodes, primaryNode, baseImage } = useMemo(() => {
     const nodes = Array.from(selectedIds)
@@ -142,13 +147,84 @@ const DrawingViewer = ({ data, selectedIds, visibleIds, selectedRevisionId, onSe
   const isRegionSelected = primaryNode?.kind === "region";
   const hasRegions = regionNodes.length > 0;
 
+  // 줌/패닝 핸들러
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.85 : 1.15;
+    setZoomLevel(prev => Math.max(0.1, Math.min(5, prev * delta)));
+  }, []);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    // 중간 마우스 버튼 또는 Ctrl+좌클릭으로 드래그 시작
+    if (e.button === 1 || (e.button === 0 && e.ctrlKey)) {
+      setIsDragging(true);
+      setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+    }
+  }, [pan]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (isDragging) {
+      setPan({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y
+      });
+    }
+  }, [isDragging, dragStart]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  const resetZoomAndPan = useCallback(() => {
+    setZoomLevel(1);
+    setPan({ x: 0, y: 0 });
+  }, []);
+
+  const handleZoomIn = useCallback(() => {
+    setZoomLevel(prev => Math.min(5, prev * 1.2));
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setZoomLevel(prev => Math.max(0.1, prev / 1.2));
+  }, []);
+
   return (
     <section className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-black">
       <div className="flex items-center justify-between">
         <SectionTitle>도면 뷰어</SectionTitle>
-        <span className="rounded-full border border-black px-3 py-1 text-xs font-semibold">
-          {selectedNodes.length > 1 ? `${selectedNodes.length}개 레이어` : "기본 렌더링"}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full border border-black px-3 py-1 text-xs font-semibold">
+            {selectedNodes.length > 1 ? `${selectedNodes.length}개 레이어` : "기본 렌더링"}
+          </span>
+          <div className="flex items-center gap-1 px-2 py-1 border border-black rounded-full text-xs">
+            <button
+              onClick={handleZoomOut}
+              className="px-1 hover:font-bold"
+              title="축소"
+              type="button"
+            >
+              −
+            </button>
+            <span className="w-12 text-center font-semibold">{Math.round(zoomLevel * 100)}%</span>
+            <button
+              onClick={handleZoomIn}
+              className="px-1 hover:font-bold"
+              title="확대"
+              type="button"
+            >
+              +
+            </button>
+            <span className="mx-1 text-black/30">|</span>
+            <button
+              onClick={resetZoomAndPan}
+              className="text-xs font-semibold hover:font-bold px-1"
+              title="초기화"
+              type="button"
+            >
+              1:1
+            </button>
+          </div>
+        </div>
       </div>
       {hasRegions ? (
         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
@@ -184,14 +260,29 @@ const DrawingViewer = ({ data, selectedIds, visibleIds, selectedRevisionId, onSe
           ))}
         </div>
       ) : null}
-      <div className="mt-4 flex min-h-105 items-center justify-center rounded-md border border-black bg-gray-50">
+      <div className="mt-4 flex min-h-105 items-center justify-center rounded-md border border-black bg-gray-50 overflow-hidden">
         {!baseImage ? (
           <p className="text-sm text-black">선택된 도면이 없습니다.</p>
         ) : (
-          <div className="relative max-h-130 w-full overflow-auto p-4">
+          <div 
+            ref={canvasRef}
+            className="relative w-full h-full overflow-auto cursor-grab active:cursor-grabbing"
+            onWheel={handleWheel}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            style={{ userSelect: isDragging ? "none" : "auto" }}
+          >
             <div
               className="relative inline-block w-full"
-              style={{ maxWidth: baseSize.width, maxHeight: baseSize.height }}
+              style={{ 
+                maxWidth: baseSize.width, 
+                maxHeight: baseSize.height,
+                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoomLevel})`,
+                transformOrigin: "top left",
+                transition: isDragging ? "none" : "transform 0.1s ease-out"
+              }}
             >
               <Image
                 src={`/drawings/${baseImage}`}
