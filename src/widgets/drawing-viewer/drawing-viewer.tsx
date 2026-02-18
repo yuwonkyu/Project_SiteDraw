@@ -66,11 +66,12 @@ const DrawingViewer = ({
   const [comparisonPans, setComparisonPans] = useState<Record<string, { x: number; y: number }>>({});
   const [comparisonDraggingState, setComparisonDraggingState] = useState<Record<string, boolean>>({});
   const [comparisonDragStart, setComparisonDragStart] = useState<Record<string, { x: number; y: number }>>({});
+  const [comparisonOpacities, setComparisonOpacities] = useState<Record<string, number>>({});
   const canvasRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // 마크업 도구 상태
   const [isMarkupMode, setIsMarkupMode] = useState(false);
-  const [markupTool, setMarkupTool] = useState<"pen" | "eraser" | "line" | "rect" | "circle">("pen");
+  const [markupTool, setMarkupTool] = useState<"pen" | "eraser" | "line" | "rect" | "circle" | "text">("pen");
   const [markupColor, setMarkupColor] = useState("#ff0000");
   const [markupLineWidth, setMarkupLineWidth] = useState(2);
   const [isMarkupDrawing, setIsMarkupDrawing] = useState(false);
@@ -254,6 +255,22 @@ const DrawingViewer = ({
     setZoomLevel(prev => Math.max(0.1, prev / 1.2));
   }, []);
 
+  // 더블클릭 시 fit-to-screen
+  const handleDoubleClick = useCallback(() => {
+    if (!canvasRef.current) return;
+    const container = canvasRef.current;
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight;
+    
+    // 이미지를 컨테이너에 fit시킬 zoom 레벨 계산
+    const zoomX = containerWidth / baseSize.width;
+    const zoomY = containerHeight / baseSize.height;
+    const fitZoom = Math.min(zoomX, zoomY, 1); // 최대 1.0 (원본 크기 이상 확대 안 함)
+    
+    setZoomLevel(fitZoom);
+    setPan({ x: 0, y: 0 });
+  }, [baseSize.width, baseSize.height]);
+
   // 비교 모드용 줌/팬 제어
   const getComparisonZoom = (revisionId: string) => comparisonZoomLevels[revisionId] ?? 1;
   const getComparisonPan = (revisionId: string) => comparisonPans[revisionId] ?? { x: 0, y: 0 };
@@ -269,6 +286,12 @@ const DrawingViewer = ({
 
   const setComparisonDragging = (revisionId: string, isDragging: boolean) => {
     setComparisonDraggingState(prev => ({ ...prev, [revisionId]: isDragging }));
+  };
+
+  const getComparisonOpacity = (revisionId: string) => comparisonOpacities[revisionId] ?? 1;
+
+  const setComparisonOpacity = (revisionId: string, opacity: number) => {
+    setComparisonOpacities(prev => ({ ...prev, [revisionId]: Math.max(0, Math.min(1, opacity)) }));
   };
 
   const handleComparisonZoomIn = (revisionId: string) => {
@@ -363,6 +386,13 @@ const DrawingViewer = ({
       ctx.beginPath();
       ctx.arc(markupDrawStart.x, markupDrawStart.y, radius, 0, 2 * Math.PI);
       ctx.stroke();
+    } else if (markupTool === "text") {
+      const text = prompt("텍스트를 입력하세요:");
+      if (text) {
+        ctx.fillStyle = markupColor;
+        ctx.font = `${Math.max(12, markupLineWidth * 6)}px Arial`;
+        ctx.fillText(text, markupDrawStart.x, markupDrawStart.y);
+      }
     }
 
     setIsMarkupDrawing(false);
@@ -511,7 +541,7 @@ const DrawingViewer = ({
         <div className="mt-3 flex flex-wrap items-center gap-3 p-3 bg-gray-50 rounded-md border border-gray-200">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold">도구:</span>
-            {(["pen", "eraser", "line", "rect", "circle"] as const).map((tool) => (
+            {(["pen", "eraser", "line", "rect", "circle", "text"] as const).map((tool) => (
               <button
                 key={tool}
                 onClick={() => setMarkupTool(tool)}
@@ -529,6 +559,7 @@ const DrawingViewer = ({
                 {tool === "line" && "📏 선"}
                 {tool === "rect" && "▭ 사각형"}
                 {tool === "circle" && "⭕ 원"}
+                {tool === "text" && "📝 텍스트"}
               </button>
             ))}
           </div>
@@ -648,6 +679,24 @@ const DrawingViewer = ({
                     1:1
                   </button>
                 </div>
+
+                {/* 알파 슬라이더 (투명도 조절) */}
+                <div className="flex items-center gap-2 px-2 py-1 border border-black rounded text-xs bg-white">
+                  <span className="font-semibold">투명도:</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={getComparisonOpacity(drawing.revisionId)}
+                    onChange={(e) => setComparisonOpacity(drawing.revisionId, parseFloat(e.target.value))}
+                    className="flex-1 h-1"
+                    title="도면 투명도 조절"
+                  />
+                  <span className="w-8 text-center">
+                    {Math.round(getComparisonOpacity(drawing.revisionId) * 100)}%
+                  </span>
+                </div>
                 
                 {/* 비교 도면 캔버스 */}
                 <div 
@@ -720,6 +769,7 @@ const DrawingViewer = ({
                       width={baseSize.width}
                       height={baseSize.height}
                       unoptimized
+                      style={{ opacity: getComparisonOpacity(drawing.revisionId) }}
                     />
                   </div>
                 </div>
@@ -735,6 +785,7 @@ const DrawingViewer = ({
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
+            onDoubleClick={handleDoubleClick}
             onContextMenu={(e) => e.preventDefault()}
             style={{ userSelect: isDragging ? "none" : "auto", touchAction: "none" }}
           >
