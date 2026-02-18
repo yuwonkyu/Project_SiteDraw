@@ -205,6 +205,10 @@ const DrawingViewer = ({
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
+      // 마크업 중에는 Shift+좌클릭 또는 우클릭으로만 드래그 가능
+      if (isMarkupMode && e.button === 0 && !e.shiftKey) return;
+
+      // 좌클릭 또는 (마크업 모드에서 Shift+좌클릭)
       if (e.button !== 0) return;
 
       e.preventDefault();
@@ -214,7 +218,7 @@ const DrawingViewer = ({
       setIsDragging(true);
       setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
     },
-    [pan],
+    [pan, isMarkupMode],
   );
 
   const handlePointerMove = useCallback(
@@ -249,12 +253,36 @@ const DrawingViewer = ({
   }, []);
 
   const handleZoomIn = useCallback(() => {
-    setZoomLevel((prev) => Math.min(5, prev * 1.2));
-  }, []);
+    if (!canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const mouseX = rect.width / 2 / zoomLevel; // 캔버스 중심 기준
+    const mouseY = rect.height / 2 / zoomLevel;
+
+    const newZoom = Math.min(5, zoomLevel * 1.2);
+    const zoomRatio = newZoom / zoomLevel;
+
+    setPan((prev) => ({
+      x: prev.x - mouseX * (zoomRatio - 1),
+      y: prev.y - mouseY * (zoomRatio - 1),
+    }));
+    setZoomLevel(newZoom);
+  }, [zoomLevel]);
 
   const handleZoomOut = useCallback(() => {
-    setZoomLevel((prev) => Math.max(0.1, prev / 1.2));
-  }, []);
+    if (!canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const mouseX = rect.width / 2 / zoomLevel; // 캔버스 중심 기준
+    const mouseY = rect.height / 2 / zoomLevel;
+
+    const newZoom = Math.max(0.1, zoomLevel / 1.2);
+    const zoomRatio = newZoom / zoomLevel;
+
+    setPan((prev) => ({
+      x: prev.x - mouseX * (zoomRatio - 1),
+      y: prev.y - mouseY * (zoomRatio - 1),
+    }));
+    setZoomLevel(newZoom);
+  }, [zoomLevel]);
 
   // 더블클릭 시 fit-to-screen
   const handleDoubleClick = useCallback(() => {
@@ -313,17 +341,53 @@ const DrawingViewer = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [comparisonDrawings, isComparisonMode]);
 
-  // 마크업 Canvas 초기화
+  // 마크업 Canvas 초기화 (기존 마크업 보존)
   const initializeMarkupCanvas = useCallback(() => {
     const canvas = markupCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+
+    // 마크업이 있으면 이미지 데이터를 저장
+    let imageData = null;
+    const oldWidth = canvas.width;
+    const oldHeight = canvas.height;
+    if (oldWidth > 0 && oldHeight > 0) {
+      imageData = ctx.getImageData(0, 0, oldWidth, oldHeight);
+    }
+
+    // 새 크기로 설정
+    const newWidth = baseSize.width * zoomLevel;
+    const newHeight = baseSize.height * zoomLevel;
+    canvas.width = newWidth;
+    canvas.height = newHeight;
+
     markupCtxRef.current = ctx;
-    canvas.width = baseSize.width * zoomLevel;
-    canvas.height = baseSize.height * zoomLevel;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
+
+    // 마크업이 있으면 복원 (스케일 조정)
+    if (
+      imageData &&
+      oldWidth > 0 &&
+      oldHeight > 0 &&
+      (newWidth !== oldWidth || newHeight !== oldHeight)
+    ) {
+      // 이미지 데이터를 새 크기에 맞게 조정
+      const tempCanvas = document.createElement("canvas");
+      tempCanvas.width = oldWidth;
+      tempCanvas.height = oldHeight;
+      const tempCtx = tempCanvas.getContext("2d");
+      if (tempCtx) {
+        tempCtx.putImageData(imageData, 0, 0);
+        // 스케일 비율 계산
+        const scaleX = newWidth / oldWidth;
+        const scaleY = newHeight / oldHeight;
+        ctx.scale(scaleX, scaleY);
+        ctx.drawImage(tempCanvas, 0, 0);
+        ctx.resetTransform();
+      }
+    }
   }, [baseSize.width, baseSize.height, zoomLevel]);
 
   // 마크업 드로잉 시작
@@ -345,13 +409,16 @@ const DrawingViewer = ({
       }
 
       const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      // getBoundingClientRect()는 이미 transform이 적용된 절대 좌표를 반환
+      // 캔버스 내 픽셀 좌표 = {화면 좌표 - 캔버스 위치} / zoom
+      // 논리 좌표로 변환 = 캔버스 픽셀 좌표 / zoom
+      const x = (e.clientX - rect.left) / zoomLevel / zoomLevel;
+      const y = (e.clientY - rect.top) / zoomLevel / zoomLevel;
 
       setMarkupDrawStart({ x, y });
       setIsMarkupDrawing(true);
     },
-    [isMarkupMode],
+    [isMarkupMode, zoomLevel],
   );
 
   // 마크업 드로잉 진행
@@ -368,23 +435,32 @@ const DrawingViewer = ({
       const canvas = markupCanvasRef.current;
       const ctx = markupCtxRef.current;
       const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      // getBoundingClientRect()는 이미 transform이 적용된 절대 좌표를 반환
+      // 캔버스 내 픽셀 좌표 = {화면 좌표 - 캔버스 위치} / zoom
+      // 논리 좌표로 변환 = 캔버스 픽셀 좌표 / zoom
+      const x = (e.clientX - rect.left) / zoomLevel / zoomLevel;
+      const y = (e.clientY - rect.top) / zoomLevel / zoomLevel;
 
       if (markupTool === "pen") {
         ctx.strokeStyle = markupColor;
-        ctx.lineWidth = markupLineWidth;
+        ctx.lineWidth = markupLineWidth * zoomLevel; // zoom에 따라 선의 물리적 두께 조정
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
         ctx.beginPath();
-        ctx.moveTo(markupDrawStart.x, markupDrawStart.y);
-        ctx.lineTo(x, y);
+        ctx.moveTo(
+          markupDrawStart.x * zoomLevel,
+          markupDrawStart.y * zoomLevel,
+        );
+        ctx.lineTo(x * zoomLevel, y * zoomLevel);
         ctx.stroke();
         setMarkupDrawStart({ x, y });
       } else if (markupTool === "eraser") {
+        const eraserSize = markupLineWidth * 2 * zoomLevel;
         ctx.clearRect(
-          x - markupLineWidth * 2,
-          y - markupLineWidth * 2,
-          markupLineWidth * 4,
-          markupLineWidth * 4,
+          x * zoomLevel - eraserSize,
+          y * zoomLevel - eraserSize,
+          eraserSize * 2,
+          eraserSize * 2,
         );
       }
     },
@@ -395,6 +471,7 @@ const DrawingViewer = ({
       markupColor,
       markupLineWidth,
       markupDrawStart,
+      zoomLevel,
     ],
   );
 
@@ -412,38 +489,62 @@ const DrawingViewer = ({
       const canvas = markupCanvasRef.current;
       const ctx = markupCtxRef.current;
       const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      // getBoundingClientRect()는 이미 transform이 적용된 절대 좌표를 반환
+      // 캔버스 내 픽셀 좌표 = {화면 좌표 - 캔버스 위치} / zoom
+      // 논리 좌표로 변환 = 캔버스 픽셀 좌표 / zoom
+      const x = (e.clientX - rect.left) / zoomLevel / zoomLevel;
+      const y = (e.clientY - rect.top) / zoomLevel / zoomLevel;
 
       if (markupTool === "line") {
         ctx.strokeStyle = markupColor;
-        ctx.lineWidth = markupLineWidth;
+        ctx.lineWidth = markupLineWidth * zoomLevel;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
         ctx.beginPath();
-        ctx.moveTo(markupDrawStart.x, markupDrawStart.y);
-        ctx.lineTo(x, y);
+        ctx.moveTo(
+          markupDrawStart.x * zoomLevel,
+          markupDrawStart.y * zoomLevel,
+        );
+        ctx.lineTo(x * zoomLevel, y * zoomLevel);
         ctx.stroke();
       } else if (markupTool === "rect") {
         ctx.strokeStyle = markupColor;
-        ctx.lineWidth = markupLineWidth;
-        const width = x - markupDrawStart.x;
-        const height = y - markupDrawStart.y;
-        ctx.strokeRect(markupDrawStart.x, markupDrawStart.y, width, height);
+        ctx.lineWidth = markupLineWidth * zoomLevel;
+        const width = (x - markupDrawStart.x) * zoomLevel;
+        const height = (y - markupDrawStart.y) * zoomLevel;
+        ctx.strokeRect(
+          markupDrawStart.x * zoomLevel,
+          markupDrawStart.y * zoomLevel,
+          width,
+          height,
+        );
       } else if (markupTool === "circle") {
         ctx.strokeStyle = markupColor;
-        ctx.lineWidth = markupLineWidth;
-        const radius = Math.sqrt(
-          Math.pow(x - markupDrawStart.x, 2) +
-            Math.pow(y - markupDrawStart.y, 2),
-        );
+        ctx.lineWidth = markupLineWidth * zoomLevel;
+        const radius =
+          Math.sqrt(
+            Math.pow(x - markupDrawStart.x, 2) +
+              Math.pow(y - markupDrawStart.y, 2),
+          ) * zoomLevel;
         ctx.beginPath();
-        ctx.arc(markupDrawStart.x, markupDrawStart.y, radius, 0, 2 * Math.PI);
+        ctx.arc(
+          markupDrawStart.x * zoomLevel,
+          markupDrawStart.y * zoomLevel,
+          radius,
+          0,
+          2 * Math.PI,
+        );
         ctx.stroke();
       } else if (markupTool === "text") {
         const text = prompt("텍스트를 입력하세요:");
         if (text) {
           ctx.fillStyle = markupColor;
-          ctx.font = `${Math.max(12, markupLineWidth * 6)}px Arial`;
-          ctx.fillText(text, markupDrawStart.x, markupDrawStart.y);
+          ctx.font = `${Math.max(12, markupLineWidth * 6 * zoomLevel)}px Arial`;
+          ctx.fillText(
+            text,
+            markupDrawStart.x * zoomLevel,
+            markupDrawStart.y * zoomLevel,
+          );
         }
       }
 
@@ -456,6 +557,7 @@ const DrawingViewer = ({
       markupColor,
       markupLineWidth,
       markupDrawStart,
+      zoomLevel,
     ],
   );
 
@@ -643,6 +745,9 @@ const DrawingViewer = ({
       {/* 마크업 도구 옵션 */}
       {isMarkupMode && (
         <div className="flex flex-wrap items-center gap-3 p-3 bg-gray-50 rounded-md border border-gray-200 flex-none">
+          <div className="text-xs text-gray-600 font-medium mb-2 w-full">
+            💡 마크업 팁: Shift + 드래그로 도면을 이동할 수 있습니다
+          </div>
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold">도구:</span>
             {(["pen", "eraser", "line", "rect", "circle", "text"] as const).map(
@@ -987,6 +1092,7 @@ const DrawingViewer = ({
                   onMouseMove={handleMarkupMouseMove}
                   onMouseUp={handleMarkupMouseUp}
                   onMouseLeave={handleMarkupMouseUp}
+                  title="마크업: 그리기 | Shift+마우스드래그: 도면 이동"
                   style={{
                     pointerEvents: isMarkupMode ? "auto" : "none",
                   }}

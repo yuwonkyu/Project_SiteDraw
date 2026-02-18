@@ -17,6 +17,7 @@ src/
 ```
 
 #### 1. Entities (entities/drawing/)
+
 - **역할**: 도면 데이터의 타입 정의, 파싱 로직
 - **구성 요소**:
   - `types.ts`: 기본 타입 정의 (Node, Drawing, Discipline 등)
@@ -25,6 +26,7 @@ src/
   - `index.ts`: 공개 API
 
 #### 2. Shared (shared/)
+
 - **lib/**: 유틸리티 함수 (`cn` - classname 병합)
 - **ui/**: 재사용 가능한 UI 컴포넌트
   - `breadcrumb.tsx`: 경로 네비게이션
@@ -32,6 +34,7 @@ src/
 - **mock/**: 개발용 더미 데이터
 
 #### 3. Widgets (widgets/)
+
 - **drawing-workspace/**: 상태 관리 및 레이아웃 조율
 - **drawing-tree/**: 계층 구조 탐색 (노드 트리 뷰)
 - **drawing-context/**: 선택된 항목의 상세 정보 및 리비전 목록
@@ -43,11 +46,13 @@ src/
 ### 1. 다중 선택 (Multi-Select)
 
 **구현 방식**:
+
 - Ctrl+Click: 다중 선택 모드
 - 일반 Click: 단일 선택 모드
 - 상태: `selectedIds` (Set<string>)
 
 **컴포넌트 간 흐름**:
+
 ```
 DrawingTree (사용자 입력 감지)
     ↓ onClick 핸들러 (ctrlKey 전달)
@@ -59,11 +64,13 @@ DrawingContext, DrawingViewer (렌더링)
 ### 2. 레이어 토글 (Layer Visibility)
 
 **구현 방식**:
+
 - 각 Discipline별 visibility 제어
 - 상태: `visibleIds` (Set<string>)
 - UI: 각 리비전 항목 옆 체크박스
 
 **상태 관리**:
+
 ```typescript
 const [visibleIds, setVisibleIds] = useState<Set<string>>(...);
 
@@ -83,22 +90,25 @@ const handleToggleVisibility = useCallback((revisionId: string) => {
 ### 3. 다중 오버레이 렌더링
 
 **구현 방식**:
+
 - 선택된 노드의 모든 리비전을 SVG polygon으로 렌더링
 - 각 리비전에 다른 색상 할당 (총 5가지 색상 팔레트)
 - 색상 인덱스: `colorIndex = revisionIndex % 5`
 
 **색상 팔레트** (LAYER_COLORS):
+
 ```typescript
 const LAYER_COLORS = [
-  { fill: "rgba(255, 0, 0, 0.1)", stroke: "#ff0000" },    // Red
-  { fill: "rgba(0, 0, 255, 0.1)", stroke: "#0000ff" },    // Blue
-  { fill: "rgba(0, 128, 0, 0.1)", stroke: "#008000" },    // Green
-  { fill: "rgba(255, 128, 0, 0.1)", stroke: "#ff8000" },  // Orange
-  { fill: "rgba(128, 0, 128, 0.1)", stroke: "#800080" },  // Purple
+  { fill: "rgba(255, 0, 0, 0.1)", stroke: "#ff0000" }, // Red
+  { fill: "rgba(0, 0, 255, 0.1)", stroke: "#0000ff" }, // Blue
+  { fill: "rgba(0, 128, 0, 0.1)", stroke: "#008000" }, // Green
+  { fill: "rgba(255, 128, 0, 0.1)", stroke: "#ff8000" }, // Orange
+  { fill: "rgba(128, 0, 128, 0.1)", stroke: "#800080" }, // Purple
 ] as const;
 ```
 
 **렌더링 알고리즘**:
+
 1. selectedIds의 각 노드 조회
 2. 각 노드의 관련 리비전 추출
 3. 리비전별 오버레이 정보 생성
@@ -108,11 +118,13 @@ const LAYER_COLORS = [
 ### 4. 리비전 선택 (Revision Selection)
 
 **구현 방식**:
+
 - 선택된 노드의 리비전 목록 표시
 - 사용자가 특정 리비전 클릭 가능
 - 상태: `selectedRevisionId` (string)
 
 **상태 흐름**:
+
 ```
 DrawingWorkspace
 ├── selectedIds (Set<string>) - 선택된 노드들
@@ -138,6 +150,7 @@ const { selectedNodes, primaryNode, baseImage } = useMemo(() => {
 ```
 
 **최적화 영역**:
+
 - `DrawingWorkspace`: 노드 및 리비전 필터링
 - `DrawingViewer`: 오버레이 정보 계산
 - `DrawingContext`: 관련 리비전 추출
@@ -152,6 +165,7 @@ const handleSelect = useCallback((id: string, ctrlKey: boolean) => {
 ```
 
 **최적화되는 핸들러**:
+
 - `handleSelect` (DrawingTree 클릭)
 - `handleToggleVisibility` (체크박스 토글)
 - `handleRevisionSelect` (리비전 선택)
@@ -161,6 +175,7 @@ const handleSelect = useCallback((id: string, ctrlKey: boolean) => {
 ### 주요 타입 정의
 
 #### ParsedDrawingData
+
 ```typescript
 type ParsedDrawingData = {
   tree: {
@@ -172,6 +187,7 @@ type ParsedDrawingData = {
 ```
 
 #### ParsedNode
+
 ```typescript
 type ParsedNode = {
   id: string;
@@ -190,9 +206,11 @@ type ParsedNode = {
 ### Props 타입 시스템
 
 **DrawingWorkspace Props**:
+
 - 내부 상태 관리, 자식 컴포넌트에 콜백 전달
 
 **DrawingViewer Props**:
+
 ```typescript
 type DrawingViewerProps = {
   data: ParsedDrawingData;
@@ -204,6 +222,7 @@ type DrawingViewerProps = {
 ```
 
 **DrawingContext Props**:
+
 ```typescript
 type CurrentContextProps = {
   data: ParsedDrawingData;
@@ -312,4 +331,94 @@ className={`cursor-pointer rounded-md border px-3 py-2 text-xs transition-colors
 
 ---
 
-**업데이트**: 2026-02-17 | **Version**: 1.0
+## 알려진 이슈 (Known Issues)
+
+### 마크업 기능
+
+#### 1. 축소/확대 시 마크업 위치 변화 🔴 **[미해결]**
+
+**문제점**:
+
+- 마크업 canvas 좌표 변환이 부정확함
+- 줌 레벨이 변경될 때 마크업의 시각적 위치가 원본 좌표와 불일치
+
+**원인 분석**:
+
+- Canvas는 물리적 픽셀 좌표계를 사용
+- DrawingViewer의 div는 CSS `transform: scale()`를 사용
+- `getBoundingClientRect()`의 좌표와 캔버스의 논리 좌표 간 변환 실패
+- Pan 오프셋을 중복 처리하는 문제
+
+**코드 위치**:
+
+- `src/widgets/drawing-viewer/drawing-viewer.tsx`
+  - `handleMarkupMouseDown()` (Line ~410)
+  - `handleMarkupMouseMove()` (Line ~435)
+  - `handleMarkupMouseUp()` (Line ~478)
+
+**해결 방안 (제안)**:
+
+1. **Canvas 크기 통일**: 마크업 canvas를 항상 baseSize로 유지 (현재 baseSize \* zoomLevel)
+2. **CSS Transform 활용**: HTML5 Canvas는 논리 좌표만 사용하고, CSS transform으로 확대/축소 표시
+3. **좌표 계산 단순화**:
+
+   ```typescript
+   // 현재 (잘못됨):
+   const x = (e.clientX - rect.left) / zoomLevel / zoomLevel - pan.x;
+
+   // 제안 (개선):
+   // Canvas가 baseSize 크기 + CSS transform scale(zoomLevel)인 경우
+   const rect = canvas.getBoundingClientRect();
+   const x = (e.clientX - rect.left) / zoomLevel - pan.x;
+   ```
+
+**참고 자료**:
+
+- HTML5 Canvas vs CSS Transform: Canvas Rendering Context는 논리 좌표를 사용하며, 물리 픽셀로의 변환은 자동으로 처리됨
+- 마크업 저장 기능도 제거됨 (저장 시 좌표 변환 문제로 인해)
+
+---
+
+#### 2. 마크업 모드 종료 시 마크업이 사라짐 🔴 **[미해결]**
+
+**문제점**:
+
+- 마크업 모드를 끌 때 Canvas가 DOM에서 제거되면서 그려진 내용이 사라짐
+- 마크업이 영구 저장되지 않음 (임시 상태일 뿐)
+
+**원인 분석**:
+
+- 마크업 Canvas는 `isMarkupMode` 상태에 따라 조건부 렌더링됨
+- 상태가 false가 되면 Canvas 엘리먼트 자체가 DOM에서 제거됨
+- Canvas의 2D context 데이터가 메모리에서 정리됨
+
+**코드 위치**:
+
+- `src/widgets/drawing-viewer/drawing-viewer.tsx`
+  - Canvas 렌더링 조건 (Line ~1175): `{isMarkupMode && (<canvas ...)`
+
+**해결 방안 (제안)**:
+
+1. **Canvas 항상 유지**: 마크업 Canvas를 항상 DOM에 유지하되, `display: none`으로 숨김
+2. **전역 마크업 상태**:
+   - IndexedDB 또는 Context API로 마크업 데이터 저장
+   - 모드 해제 후에도 데이터 복구 가능
+3. **Canvas 데이터 백업**:
+   ```typescript
+   const saveMarkupState = () => {
+     const canvas = markupCanvasRef.current;
+     if (canvas) {
+       const imageData = canvas.toDataURL("image/png");
+       sessionStorage.setItem("markupState", imageData);
+     }
+   };
+   ```
+
+**참고 자료**:
+
+- Canvas 데이터 직렬화: `toDataURL()` 또는 `toBlob()`로 저장 가능
+- 조건부 렌더링의 한계: DOM 제거 = 상태 손실
+
+---
+
+**업데이트**: 2026-02-19 | **Version**: 1.0.1
