@@ -25,7 +25,6 @@ const DrawingWorkspace = ({ metadata }: DrawingWorkspaceProps) => {
   const [comparisonRevisions, setComparisonRevisions] = useState<Set<string>>(
     new Set()
   );
-  const [filterVisible, setFilterVisible] = useState(true);
 
   const handleSelect = useCallback((id: string, ctrlKey: boolean) => {
     setSelectedIds((prev) => {
@@ -55,7 +54,11 @@ const DrawingWorkspace = ({ metadata }: DrawingWorkspaceProps) => {
   const handleToggleVisibility = useCallback((id: string) => {
     setVisibleIds((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
   }, []);
@@ -96,20 +99,15 @@ const DrawingWorkspace = ({ metadata }: DrawingWorkspaceProps) => {
         onRevisionSelect={handleRevisionSelect}
         onAddToComparison={handleAddToComparison}
       />
-      {filterVisible && (
-        <DrawingFilter
-          data={parsed}
-          selectedIds={selectedIds}
-          visibleIds={visibleIds}
-          onSearch={(filteredIds) => {
-            // 필터 결과로 자동 선택
-            if (filteredIds.size > 0) {
-              setSelectedIds(new Set(Array.from(filteredIds).slice(0, 1)));
-            }
-          }}
-          onToggleDisciplineVisibility={handleToggleVisibility}
-        />
-      )}
+      <DrawingFilter
+        data={parsed}
+        onSearch={(filteredIds: Set<string>) => {
+          // 필터 결과로 자동 선택
+          if (filteredIds.size > 0) {
+            setSelectedIds(new Set(Array.from(filteredIds).slice(0, 1)));
+          }
+        }}
+      />
       <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
         <DrawingExplorer
           data={parsed}
@@ -120,12 +118,10 @@ const DrawingWorkspace = ({ metadata }: DrawingWorkspaceProps) => {
           data={parsed}
           selectedIds={selectedIds}
           visibleIds={visibleIds}
-          selectedRevisionId={selectedRevisionId}
           isComparisonMode={isComparisonMode}
           comparisonRevisions={comparisonRevisions}
           onSelect={handleSelect}
           onToggleComparison={handleToggleComparison}
-          onAddToComparison={handleAddToComparison}
         />
       </div>
     </div>

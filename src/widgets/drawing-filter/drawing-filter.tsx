@@ -7,18 +7,12 @@ import type { ParsedDrawingData } from "@/entities/drawing/model";
 
 type DrawingFilterProps = {
   data: ParsedDrawingData;
-  selectedIds: Set<string>;
-  visibleIds: Set<string>;
   onSearch: (filteredNodeIds: Set<string>) => void;
-  onToggleDisciplineVisibility: (disciplineId: string) => void;
 };
 
 export const DrawingFilter = ({
   data,
-  selectedIds,
-  visibleIds,
   onSearch,
-  onToggleDisciplineVisibility,
 }: DrawingFilterProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDiscipline, setFilterDiscipline] = useState<string | null>(null);

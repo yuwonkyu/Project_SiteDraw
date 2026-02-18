@@ -40,19 +40,16 @@ type DrawingViewerProps = {
   comparisonRevisions?: Set<string>;
   onSelect: (id: string, ctrlKey: boolean) => void;
   onToggleComparison?: () => void;
-  onAddToComparison?: (revisionId: string) => void;
 };
 
 const DrawingViewer = ({ 
   data, 
   selectedIds, 
-  visibleIds, 
-  selectedRevisionId, 
+  visibleIds,
   isComparisonMode = false,
   comparisonRevisions = new Set(),
   onSelect,
-  onToggleComparison,
-  onAddToComparison
+  onToggleComparison
 }: DrawingViewerProps) => {
   const [baseSize, setBaseSize] = useState({ width: 1600, height: 1000 });
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -111,7 +108,7 @@ const DrawingViewer = ({
     }
 
     if (!image && drawingNode && "image" in drawingNode) {
-      image = (drawingNode as any).image;
+      image = drawingNode.image as string | undefined;
     }
 
     return { selectedNodes: nodes, primaryNode: primary, baseImage: image };
@@ -155,7 +152,7 @@ const DrawingViewer = ({
         return;
       }
 
-      let disciplineNode = node.kind === "region"
+      const disciplineNode = node.kind === "region"
         ? data.tree.nodes[node.parentId ?? ""]
         : node;
 
@@ -171,7 +168,7 @@ const DrawingViewer = ({
     });
 
     return items;
-  }, [selectedNodes, data.revisions]);
+  }, [selectedNodes, data.revisions, data.tree.nodes]);
 
   // visibleIds로 필터링
   const visibleOverlays = overlays.filter((overlay) =>
@@ -465,7 +462,7 @@ const DrawingViewer = ({
     canvas.addEventListener("wheel", handleWheelEvent, { passive: false, capture: true });
 
     return () => {
-      canvas.removeEventListener("wheel", handleWheelEvent, { capture: true } as any);
+      canvas.removeEventListener("wheel", handleWheelEvent, { capture: true });
     };
   }, []);
 
@@ -476,7 +473,7 @@ const DrawingViewer = ({
       if (canvas && canvas.contains(e.target as Node)) {
         e.preventDefault();
         const delta = e.deltaY > 0 ? 0.85 : 1.15;
-        setComparisonZoom(revisionId, Math.max(0.1, Math.min(5, getComparisonZoom(revisionId) * delta)));
+        setComparisonZoom(revisionId, Math.max(0.1, Math.min(5, (comparisonZoomLevels[revisionId] ?? 1) * delta)));
       }
     };
 
@@ -497,7 +494,7 @@ const DrawingViewer = ({
       listeners.forEach(({ revId, handler }) => {
         const canvas = canvasRefs.current[revId];
         if (canvas) {
-          canvas.removeEventListener("wheel", handler, { capture: true } as any);
+          canvas.removeEventListener("wheel", handler, { capture: true });
         }
       });
     };
@@ -689,7 +686,7 @@ const DrawingViewer = ({
         ) : isComparisonMode && comparisonDrawings.length > 0 ? (
           // 비교 모드 렌더링
           <div className="w-full h-full flex gap-2 p-2">
-            {comparisonDrawings.map((drawing, idx) => (
+            {comparisonDrawings.map((drawing) => (
               <div 
                 key={drawing.revisionId}
                 className="flex-1 flex flex-col gap-2"
@@ -865,7 +862,7 @@ const DrawingViewer = ({
                   viewBox={`0 0 ${baseSize.width} ${baseSize.height}`}
                   preserveAspectRatio="xMinYMin meet"
                 >
-                  {visibleOverlays.map((overlay, idx) => {
+                  {visibleOverlays.map((overlay) => {
                     const points = toPoints(overlay.polygon?.vertices);
                     if (!points) return null;
 

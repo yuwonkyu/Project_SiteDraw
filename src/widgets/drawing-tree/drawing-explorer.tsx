@@ -1,10 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/shared/lib";
 import { SectionTitle } from "@/shared/ui";
 import type {
-  NavigationNode,
   NavigationNodeKind,
   ParsedDrawingData,
 } from "@/entities/drawing/model/parsed-types";
@@ -55,10 +54,13 @@ const DrawingExplorer = ({ data, selectedIds, onSelect }: DrawingExplorerProps) 
       }
     });
 
-    setExpandedIds((prev) => ({
-      ...prev,
-      ...nextExpanded,
-    }));
+    // 필요한 변경이 있을 때만 업데이트
+    setExpandedIds((prev) => {
+      const hasChanges = Object.keys(nextExpanded).some(
+        (key) => prev[key] !== nextExpanded[key]
+      );
+      return hasChanges ? { ...prev, ...nextExpanded } : prev;
+    });
   }, [data.tree.nodes, selectedIds]);
 
   const sortedChildren = useMemo(() => {
