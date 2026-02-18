@@ -1,0 +1,101 @@
+<svg width="1600" height="1000" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000">
+  <defs>
+    <style>
+      .slab { stroke: #333; stroke-width: 2; fill: #d3d3d3; }
+      .column { stroke: #000; stroke-width: 3; fill: #a9a9a9; }
+      .beam { stroke: #000; stroke-width: 3; fill: #696969; }
+      .grid { stroke: #ddd; stroke-width: 0.5; }
+      .label { font-family: Arial; font-size: 14px; font-weight: bold; }
+      .title { font-family: Arial; font-size: 20px; font-weight: bold; }
+    </style>
+  </defs>
+  
+  <!-- Grid Background -->
+  <g class="grid">
+    <line x1="0" y1="0" x2="0" y2="1000" />
+    <line x1="100" y1="0" x2="100" y2="1000" />
+    <line x1="200" y1="0" x2="200" y2="1000" />
+    <line x1="300" y1="0" x2="300" y2="1000" />
+    <line x1="400" y1="0" x2="400" y2="1000" />
+    <line x1="500" y1="0" x2="500" y2="1000" />
+    <line x1="600" y1="0" x2="600" y2="1000" />
+    <line x1="700" y1="0" x2="700" y2="1000" />
+    <line x1="800" y1="0" x2="800" y2="1000" />
+    <line x1="900" y1="0" x2="900" y2="1000" />
+    <line x1="1000" y1="0" x2="1000" y2="1000" />
+    <line x1="0" y1="50" x2="1600" y2="50" />
+    <line x1="0" y1="100" x2="1600" y2="100" />
+    <line x1="0" y1="150" x2="1600" y2="150" />
+    <line x1="0" y1="200" x2="1600" y2="200" />
+    <line x1="0" y1="250" x2="1600" y2="250" />
+  </g>
+  
+  <!-- Slab (Concrete Slab) -->
+  <rect class="slab" x="150" y="100" width="900" height="700" />
+  
+  <!-- Beams -->
+  <rect class="beam" x="150" y="200" width="900" height="30" />
+  <rect class="beam" x="150" y="350" width="900" height="30" />
+  <rect class="beam" x="150" y="500" width="900" height="30" />
+  <rect class="beam" x="150" y="650" width="900" height="30" />
+  
+  <!-- Vertical Beams -->
+  <rect class="beam" x="250" y="100" width="30" height="700" />
+  <rect class="beam" x="400" y="100" width="30" height="700" />
+  <rect class="beam" x="550" y="100" width="30" height="700" />
+  <rect class="beam" x="700" y="100" width="30" height="700" />
+  <rect class="beam" x="850" y="100" width="30" height="700" />
+  
+  <!-- Columns (at intersections) -->
+  <circle class="column" cx="170" cy="120" r="25" />
+  <circle class="column" cx="320" cy="120" r="25" />
+  <circle class="column" cx="470" cy="120" r="25" />
+  <circle class="column" cx="620" cy="120" r="25" />
+  <circle class="column" cx="770" cy="120" r="25" />
+  <circle class="column" cx="920" cy="120" r="25" />
+  <circle class="column" cx="1045" cy="120" r="25" />
+  
+  <circle class="column" cx="170" cy="270" r="25" />
+  <circle class="column" cx="320" cy="270" r="25" />
+  <circle class="column" cx="470" cy="270" r="25" />
+  <circle class="column" cx="620" cy="270" r="25" />
+  <circle class="column" cx="770" cy="270" r="25" />
+  <circle class="column" cx="920" cy="270" r="25" />
+  <circle class="column" cx="1045" cy="270" r="25" />
+  
+  <circle class="column" cx="170" cy="420" r="25" />
+  <circle class="column" cx="320" cy="420" r="25" />
+  <circle class="column" cx="470" cy="420" r="25" />
+  <circle class="column" cx="620" cy="420" r="25" />
+  <circle class="column" cx="770" cy="420" r="25" />
+  <circle class="column" cx="920" cy="420" r="25" />
+  <circle class="column" cx="1045" cy="420" r="25" />
+  
+  <circle class="column" cx="170" cy="570" r="25" />
+  <circle class="column" cx="320" cy="570" r="25" />
+  <circle class="column" cx="470" cy="570" r="25" />
+  <circle class="column" cx="620" cy="570" r="25" />
+  <circle class="column" cx="770" cy="570" r="25" />
+  <circle class="column" cx="920" cy="570" r="25" />
+  <circle class="column" cx="1045" cy="570" r="25" />
+  
+  <circle class="column" cx="170" cy="720" r="25" />
+  <circle class="column" cx="320" cy="720" r="25" />
+  <circle class="column" cx="470" cy="720" r="25" />
+  <circle class="column" cx="620" cy="720" r="25" />
+  <circle class="column" cx="770" cy="720" r="25" />
+  <circle class="column" cx="920" cy="720" r="25" />
+  <circle class="column" cx="1045" cy="720" r="25" />
+  
+  <!-- Labels -->
+  <text class="label" x="200" y="850">C1</text>
+  <text class="label" x="350" y="850">C2</text>
+  <text class="label" x="500" y="850">C3</text>
+  <text class="label" x="650" y="850">C4</text>
+  <text class="label" x="800" y="850">C5</text>
+  <text class="label" x="950" y="850">C6</text>
+  <text class="label" x="1050" y="850">C7</text>
+  
+  <!-- Title -->
+  <text class="title" x="800" y="940" text-anchor="middle">101동 지상1층 구조도 (구조)</text>
+</svg>
