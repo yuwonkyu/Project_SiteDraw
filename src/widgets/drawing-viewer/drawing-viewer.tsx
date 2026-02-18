@@ -36,10 +36,24 @@ type DrawingViewerProps = {
   selectedIds: Set<string>;
   visibleIds: Set<string>;
   selectedRevisionId?: string;
+  isComparisonMode?: boolean;
+  comparisonRevisions?: Set<string>;
   onSelect: (id: string, ctrlKey: boolean) => void;
+  onToggleComparison?: () => void;
+  onAddToComparison?: (revisionId: string) => void;
 };
 
-const DrawingViewer = ({ data, selectedIds, visibleIds, selectedRevisionId, onSelect }: DrawingViewerProps) => {
+const DrawingViewer = ({ 
+  data, 
+  selectedIds, 
+  visibleIds, 
+  selectedRevisionId, 
+  isComparisonMode = false,
+  comparisonRevisions = new Set(),
+  onSelect,
+  onToggleComparison,
+  onAddToComparison
+}: DrawingViewerProps) => {
   const [baseSize, setBaseSize] = useState({ width: 1600, height: 1000 });
   const [zoomLevel, setZoomLevel] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -191,9 +205,22 @@ const DrawingViewer = ({ data, selectedIds, visibleIds, selectedRevisionId, onSe
 
   return (
     <section className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-black">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <SectionTitle>도면 뷰어</SectionTitle>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={onToggleComparison}
+            className={cn(
+              "rounded-full border px-3 py-1 text-xs font-semibold transition",
+              isComparisonMode
+                ? "bg-gray-700 text-white"
+                : "bg-white text-black border-black"
+            )}
+            type="button"
+            title={isComparisonMode ? "비교 모드 해제" : "리비전 비교 모드"}
+          >
+            {isComparisonMode ? "🔄 비교 중" : "비교"}
+          </button>
           <span className="rounded-full border border-black px-3 py-1 text-xs font-semibold">
             {selectedNodes.length > 1 ? `${selectedNodes.length}개 레이어` : "기본 렌더링"}
           </span>

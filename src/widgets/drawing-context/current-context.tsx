@@ -45,8 +45,11 @@ type CurrentContextProps = {
   selectedIds: Set<string>;
   visibleIds: Set<string>;
   selectedRevisionId: string;
+  isComparisonMode?: boolean;
+  comparisonRevisions?: Set<string>;
   onToggleVisibility: (id: string) => void;
   onRevisionSelect: (revisionId: string) => void;
+  onAddToComparison?: (revisionId: string) => void;
 };
 
 const CurrentContext = ({ 
@@ -54,8 +57,11 @@ const CurrentContext = ({
   selectedIds, 
   visibleIds, 
   selectedRevisionId,
+  isComparisonMode = false,
+  comparisonRevisions = new Set(),
   onToggleVisibility,
   onRevisionSelect,
+  onAddToComparison,
 }: CurrentContextProps) => {
   const selectedNodes = Array.from(selectedIds)
     .map((id) => data.tree.nodes[id])
@@ -168,20 +174,41 @@ const CurrentContext = ({
                     relatedRevisions.map((entry) => (
                       <div
                         key={entry.id}
-                        onClick={() => onRevisionSelect(entry.id)}
-                        className={`cursor-pointer rounded-md border px-3 py-2 text-xs transition-colors ${
-                          selectedRevisionId === entry.id
+                        className={`rounded-md border px-3 py-2 text-xs transition-colors flex items-center justify-between group ${
+                          selectedRevisionId === entry.id && !isComparisonMode
                             ? "border-black bg-gray-700 text-white"
                             : "border-black bg-white text-black"
+                        } ${
+                          comparisonRevisions.has(entry.id)
+                            ? "ring-2 ring-blue-400"
+                            : ""
                         }`}
                       >
-                        <p className="font-semibold">
-                          {entry.version}
-                        </p>
-                        <p className="mt-1 text-[11px]">
-                          {entry.revision.date} · {entry.discipline}
-                          {entry.regionId ? ` / Region ${entry.regionId}` : ""}
-                        </p>
+                        <div
+                          onClick={() => onRevisionSelect(entry.id)}
+                          className="flex-1 cursor-pointer"
+                        >
+                          <p className="font-semibold">
+                            {entry.version}
+                          </p>
+                          <p className="mt-1 text-[11px]">
+                            {entry.revision.date} · {entry.discipline}
+                            {entry.regionId ? ` / Region ${entry.regionId}` : ""}
+                          </p>
+                        </div>
+                        {isComparisonMode && (
+                          <button
+                            onClick={() => onAddToComparison?.(entry.id)}
+                            className={`ml-2 px-2 py-1 rounded text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity ${
+                              comparisonRevisions.has(entry.id)
+                                ? "bg-blue-400 text-white"
+                                : "bg-gray-200 text-black hover:bg-gray-300"
+                            }`}
+                            type="button"
+                          >
+                            {comparisonRevisions.has(entry.id) ? "✓" : "비교"}
+                          </button>
+                        )}
                       </div>
                     ))
                   ) : (

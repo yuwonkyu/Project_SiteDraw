@@ -20,6 +20,10 @@ const DrawingWorkspace = ({ metadata }: DrawingWorkspaceProps) => {
     new Set([parsed.tree.rootId])
   );
   const [selectedRevisionId, setSelectedRevisionId] = useState<string>("");
+  const [isComparisonMode, setIsComparisonMode] = useState(false);
+  const [comparisonRevisions, setComparisonRevisions] = useState<Set<string>>(
+    new Set()
+  );
 
   const handleSelect = useCallback((id: string, ctrlKey: boolean) => {
     setSelectedIds((prev) => {
@@ -58,6 +62,25 @@ const DrawingWorkspace = ({ metadata }: DrawingWorkspaceProps) => {
     setSelectedRevisionId(revisionId);
   }, []);
 
+  const handleToggleComparison = useCallback(() => {
+    setIsComparisonMode((prev) => !prev);
+    if (isComparisonMode) {
+      setComparisonRevisions(new Set());
+    }
+  }, [isComparisonMode]);
+
+  const handleAddToComparison = useCallback((revisionId: string) => {
+    setComparisonRevisions((prev) => {
+      const next = new Set(prev);
+      if (next.has(revisionId)) {
+        next.delete(revisionId);
+      } else if (next.size < 2) {
+        next.add(revisionId);
+      }
+      return next;
+    });
+  }, []);
+
   return (
     <div className="grid gap-4">
       <CurrentContext 
@@ -65,8 +88,11 @@ const DrawingWorkspace = ({ metadata }: DrawingWorkspaceProps) => {
         selectedIds={selectedIds} 
         visibleIds={visibleIds}
         selectedRevisionId={selectedRevisionId}
+        isComparisonMode={isComparisonMode}
+        comparisonRevisions={comparisonRevisions}
         onToggleVisibility={handleToggleVisibility}
         onRevisionSelect={handleRevisionSelect}
+        onAddToComparison={handleAddToComparison}
       />
       <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
         <DrawingExplorer
@@ -79,7 +105,11 @@ const DrawingWorkspace = ({ metadata }: DrawingWorkspaceProps) => {
           selectedIds={selectedIds}
           visibleIds={visibleIds}
           selectedRevisionId={selectedRevisionId}
+          isComparisonMode={isComparisonMode}
+          comparisonRevisions={comparisonRevisions}
           onSelect={handleSelect}
+          onToggleComparison={handleToggleComparison}
+          onAddToComparison={handleAddToComparison}
         />
       </div>
     </div>
