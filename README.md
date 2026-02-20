@@ -2,14 +2,6 @@
 
 건설 현장 도면을 구조적으로 탐색하고 리비전 이력을 빠르게 파악하는 웹 기반 도면 뷰어입니다.
 
-**🔗 Links:**
-
-- 🚀 **배포 사이트**: [https://project-site-draw.vercel.app/](https://project-site-draw.vercel.app/)
-- 📦 **GitHub**: [https://github.com/yuwonkyu/Project_SiteDraw](https://github.com/yuwonkyu/Project_SiteDraw)
-- 📝 **Notion 프로젝트 문서**: [프로젝트 요약 및 스케줄 관리](https://illustrious-lip-d49.notion.site/Project_SiteDraw-305ecf9850a580809a98d6adb6cfae89?pvs=74)
-
----
-
 ## 실행 방법
 
 ```bash
@@ -26,14 +18,11 @@ npm run build
 npm start
 ```
 
-개발 서버 실행 후 브라우저에서 `http://localhost:3000`으로 접속하세요.
-
----
-
 ## 기술 스택
 
 - **Framework**: Next.js 16.1.6 (App Router, Turbopack)
 - **Language**: TypeScript (Strict Mode)
+- **UI Library**: React 19.2.3
 - **Styling**: Tailwind CSS 4
 - **Architecture**: FSD (Feature-Sliced Design)
 - **Runtime**: Node.js 18+
