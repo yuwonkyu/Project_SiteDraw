@@ -25,9 +25,9 @@
 **코드 위치**:
 
 - `src/widgets/drawing-viewer/drawing-viewer.tsx`
-  - `handleMarkupMouseDown()` (Line ~410)
-  - `handleMarkupMouseMove()` (Line ~435)
-  - `handleMarkupMouseUp()` (Line ~478)
+  - `handleMarkupMouseDown()` (Line 185)
+  - `handleMarkupMouseMove()` (Line 202)
+  - `handleMarkupMouseUp()` (Line 233)
 
 **해결 방안 (제안)**:
 
@@ -36,13 +36,13 @@
 3. **좌표 계산 단순화**:
 
    ```typescript
-   // 현재 (잘못됨):
-   const x = (e.clientX - rect.left) / zoomLevel / zoomLevel - pan.x;
+   // 현재 (문제 있음):
+   const x = (e.clientX - rect.left) / zoomLevel / zoomLevel;
 
    // 제안 (개선):
    // Canvas가 baseSize 크기 + CSS transform scale(zoomLevel)인 경우
    const rect = canvas.getBoundingClientRect();
-   const x = (e.clientX - rect.left) / zoomLevel - pan.x;
+   const x = (e.clientX - rect.left) / zoomLevel;
    ```
 
 **참고 자료**:
@@ -68,7 +68,7 @@
 **코드 위치**:
 
 - `src/widgets/drawing-viewer/drawing-viewer.tsx`
-  - Canvas 렌더링 조건 (Line ~1175): `{isMarkupMode && (<canvas ...)`
+  - Canvas 렌더링 조건 (Line 598): `{markup.markupState.isMarkupMode && (<canvas ...)`
 
 **해결 방안 (제안)**:
 
