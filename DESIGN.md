@@ -129,7 +129,7 @@ FSD (Feature-Sliced Design)
 
 2. 상태 관리 방식과 근거
    useState 기반 로컬 상태 관리
-   
+
    초기 설계에서는 Context API를 검토했으나, 현재 구현에서는 각 컴포넌트에서 `setState` 훅을 사용하여 관리합니다.
    작은 규모의 프로젝트에서는 props drilling을 통한 단순한 상태 전달이 오버헤드 없이 효과적이었습니다.
    향후 Redux나 Zustand 등으로는 마이그레이션 가능한 구조로 설계되었습니다.
@@ -141,8 +141,7 @@ FSD (Feature-Sliced Design)
 - selectedRevisionId: string - 선택된 리비전 ID
 - isComparisonMode: boolean - 비교 모드 활성화 여부
 - comparisonRevisions: Set<string> - 비교할 리비전들
-   
-   이를 하위 컴포넌트에 props로 전달하며 단방향 데이터 흐름을 유지합니다.
+  이를 하위 컴포넌트에 props로 전달하며 단방향 데이터 흐름을 유지합니다.
 
 3. 스타일링 선택 기준
    Tailwind CSS
